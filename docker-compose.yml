@@ -1,0 +1,107 @@
+name: telegram-ai-platform
+
+# Shared definition for the application image (§R12.3: one image, many roles).
+# App services are gated behind the "app" profile because their entrypoints land in later
+# stages (worker=8, scheduler=9, api=10). Default `docker compose up` starts infra only.
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: telegram-ai-platform:latest
+  restart: unless-stopped
+  # All settings via environment only; secrets never baked into the image (§R12.2).
+  environment: &app-env
+    APP_ENV: ${APP_ENV:-production}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-telegram_ai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-telegram_ai}
+    REDIS_URL: redis://redis:6379/0
+    STORAGE_DIR: /app/storage
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  volumes:
+    - storage:/app/storage
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks:
+    - internal
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-telegram_ai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see .env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:-telegram_ai}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-telegram_ai} -d ${POSTGRES_DB:-telegram_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    networks:
+      - internal
+      - public
+
+  # --- application roles (one image) — activated in their stages via `--profile app` ---
+  api:
+    <<: *app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    profiles: ["app"]   # Stage 10: entrypoint app/main.py
+
+  scheduler:
+    <<: *app
+    command: ["python", "-m", "app.scheduler.run"]
+    profiles: ["app"]   # Stage 9: entrypoint app/scheduler/run.py
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.workers.run"]
+    profiles: ["app"]   # Stage 8: entrypoint app/workers/run.py
+
+networks:
+  # Backend network. Least exposure (§R12.5) comes from NOT publishing ports (only caddy does),
+  # so postgres/redis/app have no inbound from the host/internet. It is a normal bridge (not
+  # `internal: true`) so app roles keep outbound access to external APIs in later stages.
+  internal:
+  public:
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:
+  caddydata:
+  caddyconfig:

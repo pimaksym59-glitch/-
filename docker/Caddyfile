@@ -1,0 +1,22 @@
+# Reverse proxy (§R12.5) — the ONLY edge that publishes ports; app/db/redis stay internal.
+# Local/dev: plain :80 proxying to the (future) api service. Production auto-HTTPS with a real
+# domain and cert management is Stage 12 (§R12.5) — replace `:80` with your domain then.
+
+{
+	admin off
+}
+
+:80 {
+	encode gzip
+
+	# baseline security headers
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+
+	# api service listens on :8000 (activated in Stage 10). Until then this yields 502.
+	reverse_proxy api:8000
+}
