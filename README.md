@@ -81,9 +81,28 @@ Check configuration (no network connections):
 python -m app doctor
 ```
 
+## Docker (§R12.3–R12.5)
+
+One image for all roles (`api` / `scheduler` / `worker`), non-root, multi-stage. Base
+`python:3.13-slim`. Infra: `pgvector/pgvector:pg16`, `redis:7-alpine`, `caddy:2-alpine`.
+Only Caddy publishes ports; postgres/redis/app stay on the internal network. Secrets are passed
+only via environment — never baked into the image. **Requires Docker Engine.**
+
+```bash
+# 1) set POSTGRES_PASSWORD (and any keys) in .env  (cp .env.example .env)
+# 2) start infrastructure only (app roles land in later stages):
+docker compose up -d postgres redis caddy
+# 3) build the app image and smoke-test the config loader in a container:
+docker build -f docker/Dockerfile -t telegram-ai-platform:latest .
+docker compose run --rm --build api python -m app doctor
+```
+
+App roles (`api`/`scheduler`/`worker`) are defined under the `app` compose profile and activate at
+their stages (worker=8, scheduler=9, api=10): `docker compose --profile app up -d`.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
-1. **Repository structure ✅** → 2. **Configuration ✅** → 3. Docker → 4. PostgreSQL(+pgvector) →
+1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. PostgreSQL(+pgvector) →
 5. Redis → 6. ORM models → 7. Repositories → 8. Task queue + registry → 9. Scheduler → 10. API →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
