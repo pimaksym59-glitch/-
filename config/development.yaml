@@ -1,0 +1,2 @@
+# Development overrides (non-secret). Merged over global.yaml when APP_ENV=development.
+log_level: DEBUG

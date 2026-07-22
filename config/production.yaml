@@ -1,0 +1,2 @@
+# Production overrides (non-secret). Merged over global.yaml when APP_ENV=production.
+log_level: WARNING

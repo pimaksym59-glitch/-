@@ -1,0 +1,17 @@
+# Business config — non-secret platform defaults (MASTER_SPEC §Appendix B).
+# Loaded as the yaml source: code defaults < yaml < .env < env vars (§R3.4).
+# SECRETS ARE NEVER PLACED HERE — they come only from env / .env (§R12.2).
+
+log_level: INFO
+
+# Platform defaults (§Appendix B) — per-channel overridable later via DB (Stages 6-7).
+similarity_threshold: 0.85
+humanness_min: 75
+history_window: 500
+image_window: 30
+max_rewrites: 3
+image_max_regen: 3
+max_retries: 5
+lead_time_minutes: 45
+epsilon_min: 0.1
+max_context_tokens: 8000
