@@ -13,6 +13,9 @@ import structlog
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from admin import router as admin_router
+from admin import ui_router
+
 from . import db, redis_client
 from .config import get_settings
 from .logging import configure_logging
@@ -33,10 +36,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AI Telegram Automation Platform", lifespan=lifespan)
 
-# Admin management API (see admin package). Guarded by ADMIN_TOKEN.
-from admin import router as admin_router  # noqa: E402
-
+# Admin management API + dashboard UI. API guarded by ADMIN_TOKEN; UI shell is public.
 app.include_router(admin_router)
+app.include_router(ui_router)
 
 
 @app.get("/health")

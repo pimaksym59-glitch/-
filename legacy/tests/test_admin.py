@@ -20,8 +20,19 @@ def test_admin_routes_registered():
     assert "/admin/tasks" in paths
 
 
-def test_admin_disabled_without_token():
-    # ADMIN_TOKEN unset in the test env → admin API returns 503 before any DB call.
+def test_admin_ui_served():
+    with TestClient(app) as client:
+        resp = client.get("/admin/ui")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "AI Telegram" in resp.text  # the dashboard shell rendered
+
+
+def test_admin_disabled_without_token(monkeypatch):
+    # With no token configured, the admin API returns 503 before any DB call.
+    # Patch the settings the dependency reads so the result is independent of
+    # any ambient .env in the working directory.
+    monkeypatch.setattr(security, "get_settings", lambda: Settings(admin_token=None))
     with TestClient(app) as client:
         resp = client.get("/admin/personas")
     assert resp.status_code == 503

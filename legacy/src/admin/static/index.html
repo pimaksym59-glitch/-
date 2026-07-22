@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — AI Telegram Automation</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --panel: #ffffff; --border: #e3e6ea; --text: #1b1f24;
+      --muted: #6b7480; --accent: #2f6fed; --accent-fg: #fff; --danger: #d64545;
+      --ok: #2e9e5b; --warn: #c9820a; --code: #f0f2f5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1216; --panel: #171b21; --border: #262c34; --text: #e6e9ee;
+        --muted: #8b95a1; --accent: #4f8bff; --accent-fg: #0b0e12; --danger: #e06c6c;
+        --ok: #4fce7f; --warn: #e0a94a; --code: #11151a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    header { position: sticky; top: 0; z-index: 10; background: var(--panel); border-bottom: 1px solid var(--border);
+             padding: 12px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    header h1 { font-size: 16px; margin: 0; margin-right: auto; }
+    header input { flex: 1; min-width: 160px; max-width: 320px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; gap: 20px;
+           grid-template-columns: 1fr 1fr; }
+    section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    section.full { grid-column: 1 / -1; }
+    h2 { font-size: 14px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 2px; }
+    input, textarea, select, button { font: inherit; color: var(--text); background: var(--panel);
+      border: 1px solid var(--border); border-radius: 7px; padding: 7px 9px; width: 100%; }
+    textarea { min-height: 60px; resize: vertical; }
+    button { cursor: pointer; width: auto; background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 600; }
+    button.ghost { background: transparent; color: var(--text); border-color: var(--border); font-weight: 500; }
+    button.sm { padding: 4px 8px; font-size: 12px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: 1; }
+    .row > button { flex: 0 0 auto; }
+    .list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 320px; overflow: auto; }
+    .item { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
+    .item .t { font-weight: 600; }
+    .item .m { color: var(--muted); font-size: 12px; }
+    .badge { display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      background: var(--code); color: var(--muted); }
+    .badge.published { color: var(--ok); } .badge.rejected, .badge.failed { color: var(--danger); }
+    .badge.queued, .badge.running, .badge.pending { color: var(--warn); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    pre { background: var(--code); border-radius: 7px; padding: 10px; overflow: auto; font-size: 12px; }
+    #toast { position: fixed; bottom: 16px; right: 16px; background: var(--panel); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 14px; max-width: 360px; box-shadow: 0 6px 24px #0004;
+      transform: translateY(150%); transition: transform .25s; }
+    #toast.show { transform: translateY(0); }
+    #toast.err { border-left-color: var(--danger); }
+    .muted { color: var(--muted); } .mono { font-family: ui-monospace, monospace; }
+    @media (max-width: 780px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚙️ AI Telegram — Admin</h1>
+    <input id="token" type="password" placeholder="X-Admin-Token" autocomplete="off" />
+    <button class="sm" onclick="saveToken()">Save token</button>
+    <button class="sm ghost" onclick="refreshAll()">Refresh</button>
+  </header>
+
+  <main>
+    <section>
+      <h2>Personas</h2>
+      <label>Name</label><input id="p_name" placeholder="Witty tech writer" />
+      <label>System prompt</label><textarea id="p_prompt" placeholder="You are..."></textarea>
+      <div class="row">
+        <div><label>Tone</label><input id="p_tone" placeholder="casual" /></div>
+        <div><label>Language</label><input id="p_lang" value="ru" /></div>
+      </div>
+      <div style="margin-top:10px"><button onclick="createPersona()">Create persona</button></div>
+      <div id="personas" class="list"></div>
+    </section>
+
+    <section>
+      <h2>Channels</h2>
+      <label>Title</label><input id="c_title" placeholder="Tech Daily" />
+      <label>Telegram chat id</label><input id="c_chat" placeholder="@my_channel" />
+      <label>Persona</label><select id="c_persona"></select>
+      <div style="margin-top:10px"><button onclick="createChannel()">Create channel</button></div>
+      <div id="channels" class="list"></div>
+    </section>
+
+    <section>
+      <h2>Knowledge</h2>
+      <label>New knowledge base</label>
+      <div class="row"><input id="kb_name" placeholder="Product facts" /><button onclick="createKB()">Create</button></div>
+      <label>Add document to KB</label>
+      <select id="doc_kb"></select>
+      <input id="doc_title" placeholder="Document title" style="margin-top:6px" />
+      <textarea id="doc_text" placeholder="Raw text to embed..." style="margin-top:6px"></textarea>
+      <div style="margin-top:8px"><button onclick="addDoc()">Ingest document</button></div>
+      <div id="kbs" class="list"></div>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <div class="row">
+        <select id="task_status">
+          <option value="">all statuses</option>
+          <option>pending</option><option>ready</option><option>running</option>
+          <option>succeeded</option><option>failed</option><option>cancelled</option>
+        </select>
+        <button class="ghost" onclick="loadTasks()">Reload</button>
+      </div>
+      <div style="overflow:auto; margin-top:10px"><table id="tasks"><thead>
+        <tr><th>id</th><th>type</th><th>status</th><th>att</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="full">
+      <h2>Detail</h2>
+      <div id="detail" class="muted">Select a channel action (Posts / Analytics) or create something.</div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let TOKEN = localStorage.getItem("adminToken") || "";
+    let personaCache = [];
+
+    window.addEventListener("DOMContentLoaded", () => {
+      $("token").value = TOKEN;
+      if (TOKEN) refreshAll();
+    });
+
+    function saveToken() {
+      TOKEN = $("token").value.trim();
+      localStorage.setItem("adminToken", TOKEN);
+      toast("Token saved");
+      refreshAll();
+    }
+
+    function toast(msg, isErr) {
+      const t = $("toast");
+      t.textContent = msg;
+      t.className = "show" + (isErr ? " err" : "");
+      clearTimeout(t._t);
+      t._t = setTimeout(() => (t.className = ""), 3500);
+    }
+
+    async function api(path, method = "GET", body) {
+      const res = await fetch(path, {
+        method,
+        headers: { "X-Admin-Token": TOKEN, ...(body ? { "Content-Type": "application/json" } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (res.status === 204) return null;
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (!res.ok) {
+        const msg = (data && data.detail) ? JSON.stringify(data.detail) : `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    function esc(s) { return (s ?? "").toString().replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+    async function refreshAll() {
+      if (!TOKEN) return toast("Enter the admin token first", true);
+      await Promise.allSettled([loadPersonas(), loadChannels(), loadKBs(), loadTasks()]);
+    }
+
+    // ── Personas ──
+    async function loadPersonas() {
+      try {
+        personaCache = await api("/admin/personas");
+        $("personas").innerHTML = personaCache.map(p =>
+          `<div class="item"><div class="t">${esc(p.name)}</div>
+           <div class="m">#${p.id} · ${esc(p.language)}${p.tone ? " · " + esc(p.tone) : ""}</div></div>`).join("") || `<div class="muted">No personas yet.</div>`;
+        const sel = $("c_persona");
+        sel.innerHTML = `<option value="">— none —</option>` +
+          personaCache.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("");
+      } catch (e) { toast("Personas: " + e.message, true); }
+    }
+    async function createPersona() {
+      const body = { name: $("p_name").value.trim(), system_prompt: $("p_prompt").value.trim(),
+        tone: $("p_tone").value.trim() || null, language: $("p_lang").value.trim() || "ru" };
+      if (!body.name || !body.system_prompt) return toast("Name and system prompt required", true);
+      try { await api("/admin/personas", "POST", body); toast("Persona created"); $("p_name").value = $("p_prompt").value = ""; loadPersonas(); }
+      catch (e) { toast("Create persona: " + e.message, true); }
+    }
+
+    // ── Channels ──
+    async function loadChannels() {
+      try {
+        const chans = await api("/admin/channels");
+        $("channels").innerHTML = chans.map(c =>
+          `<div class="item"><div class="t">${esc(c.title)} <span class="badge">${esc(c.status)}</span></div>
+           <div class="m">#${c.id} · ${esc(c.telegram_chat_id)}</div>
+           <div class="row" style="margin-top:6px">
+             <button class="sm" onclick="genPost(${c.id})">Generate</button>
+             <button class="sm ghost" onclick="showPosts(${c.id})">Posts</button>
+             <button class="sm ghost" onclick="showAnalytics(${c.id})">Analytics</button>
+             <button class="sm ghost" onclick="addSchedule(${c.id})">+Schedule</button>
+           </div></div>`).join("") || `<div class="muted">No channels yet.</div>`;
+      } catch (e) { toast("Channels: " + e.message, true); }
+    }
+    async function createChannel() {
+      const body = { title: $("c_title").value.trim(), telegram_chat_id: $("c_chat").value.trim(),
+        persona_id: $("c_persona").value ? Number($("c_persona").value) : null };
+      if (!body.title || !body.telegram_chat_id) return toast("Title and chat id required", true);
+      try { await api("/admin/channels", "POST", body); toast("Channel created"); $("c_title").value = $("c_chat").value = ""; loadChannels(); }
+      catch (e) { toast("Create channel: " + e.message, true); }
+    }
+    async function genPost(id) {
+      try { const r = await api(`/admin/channels/${id}/generate`, "POST", {}); toast("Enqueued generate_text task #" + r.task_id); loadTasks(); }
+      catch (e) { toast("Generate: " + e.message, true); }
+    }
+    async function addSchedule(id) {
+      const cron = prompt("Cron expression (blank to use interval):", "0 9 * * *");
+      if (cron === null) return;
+      let interval = null;
+      if (!cron) { const s = prompt("Interval seconds:", "3600"); if (s === null) return; interval = Number(s); }
+      try { await api(`/admin/channels/${id}/schedules`, "POST", { cron: cron || null, interval_seconds: interval, timezone: "UTC" }); toast("Schedule created"); }
+      catch (e) { toast("Schedule: " + e.message, true); }
+    }
+    async function showPosts(id) {
+      try {
+        const posts = await api(`/admin/channels/${id}/posts`);
+        $("detail").innerHTML = `<h3>Posts of channel #${id}</h3>` + (posts.length ? `<table><thead>
+          <tr><th>id</th><th>status</th><th>title</th><th>image</th><th>published</th></tr></thead><tbody>` +
+          posts.map(p => `<tr><td>${p.id}</td><td><span class="badge ${p.status}">${p.status}</span></td>
+            <td>${esc(p.title) || "<span class='muted'>—</span>"}</td>
+            <td>${p.image_path ? "✓" : "—"}</td><td class="muted">${p.published_at ? esc(p.published_at.slice(0, 16)) : "—"}</td></tr>`).join("") +
+          `</tbody></table>` : `<div class="muted">No posts yet — hit Generate (a worker must be running to process the task).</div>`);
+      } catch (e) { toast("Posts: " + e.message, true); }
+    }
+    async function showAnalytics(id) {
+      try {
+        const a = await api(`/admin/channels/${id}/analytics`);
+        $("detail").innerHTML = `<h3>Analytics of channel #${id}</h3>
+          <div class="row">
+            <div class="item"><div class="m">Posts</div><div class="t">${a.total_posts}</div></div>
+            <div class="item"><div class="m">Views</div><div class="t">${a.total_views}</div></div>
+            <div class="item"><div class="m">Reactions</div><div class="t">${a.total_reactions}</div></div>
+            <div class="item"><div class="m">Forwards</div><div class="t">${a.total_forwards}</div></div>
+            <div class="item"><div class="m">Best hour</div><div class="t">${a.best_hour ?? "—"}</div></div>
+          </div>
+          <h3 style="margin-top:14px">Recommendations</h3>
+          <ul>${a.recommendations.map(r => `<li>${esc(r)}</li>`).join("")}</ul>
+          ${a.top_posts.length ? `<h3>Top posts</h3><ul>${a.top_posts.map(p => `<li>#${p.post_id} — ${esc(p.title) || "untitled"} (engagement ${p.engagement})</li>`).join("")}</ul>` : ""}`;
+      } catch (e) { toast("Analytics: " + e.message, true); }
+    }
+
+    // ── Knowledge ──
+    async function loadKBs() {
+      try {
+        const kbs = await api("/admin/knowledge-bases").catch(() => []);
+        $("kbs").innerHTML = (kbs || []).map(k => `<div class="item"><div class="t">${esc(k.name)}</div><div class="m">#${k.id}</div></div>`).join("") || `<div class="muted">No knowledge bases yet.</div>`;
+        $("doc_kb").innerHTML = (kbs || []).map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join("") || `<option value="">— create a KB first —</option>`;
+      } catch (e) { /* GET list endpoint may not exist; ignore */ }
+    }
+    async function createKB() {
+      const name = $("kb_name").value.trim();
+      if (!name) return toast("KB name required", true);
+      try { await api("/admin/knowledge-bases", "POST", { name }); toast("Knowledge base created"); $("kb_name").value = ""; loadKBs(); }
+      catch (e) { toast("Create KB: " + e.message, true); }
+    }
+    async function addDoc() {
+      const kb = $("doc_kb").value;
+      const body = { title: $("doc_title").value.trim(), raw_text: $("doc_text").value.trim() };
+      if (!kb || !body.title || !body.raw_text) return toast("KB, title and text required", true);
+      try { const r = await api(`/admin/knowledge-bases/${kb}/documents`, "POST", body); toast(`Ingested — ${r.chunks} chunks`); $("doc_title").value = $("doc_text").value = ""; }
+      catch (e) { toast("Ingest: " + e.message, true); }
+    }
+
+    // ── Tasks ──
+    async function loadTasks() {
+      try {
+        const s = $("task_status").value;
+        const tasks = await api("/admin/tasks" + (s ? `?status=${s}` : ""));
+        $("tasks").querySelector("tbody").innerHTML = tasks.map(t =>
+          `<tr><td>${t.id}</td><td class="mono">${t.type}</td><td><span class="badge ${t.status}">${t.status}</span></td><td>${t.attempts}</td></tr>`).join("") ||
+          `<tr><td colspan="4" class="muted">No tasks.</td></tr>`;
+      } catch (e) { toast("Tasks: " + e.message, true); }
+    }
+  </script>
+</body>
+</html>

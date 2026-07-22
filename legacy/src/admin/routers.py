@@ -163,6 +163,11 @@ async def create_knowledge_base(
     return kb
 
 
+@router.get("/knowledge-bases", response_model=list[schemas.KnowledgeBaseOut])
+async def list_knowledge_bases(session: AsyncSession = Depends(get_session)):
+    return (await session.execute(select(KnowledgeBase).order_by(KnowledgeBase.id))).scalars().all()
+
+
 @router.post(
     "/knowledge-bases/{kb_id}/documents", response_model=schemas.IngestResult, status_code=201
 )

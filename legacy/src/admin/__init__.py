@@ -10,5 +10,6 @@ Depends on: db, scheduler, memory, analytics.
 from __future__ import annotations
 
 from .routers import router
+from .ui import ui_router
 
-__all__ = ["router"]
+__all__ = ["router", "ui_router"]

@@ -2,20 +2,33 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual env / tooling caches
 .venv/
 venv/
+.mypy_cache/
 .pytest_cache/
 .ruff_cache/
 
-# Env & secrets
+# Secrets / local config (§R12.2 — never commit secrets)
 .env
 *.env
 !.env.example
 
-# Data / runtime
+# Runtime artifacts
 *.log
+logs/*
+!logs/.gitkeep
+storage/**/*
+!storage/**/.gitkeep
 data/
 media/
+
+# Claude Code local state (session-local; never part of the project baseline)
+.claude/
 
 # IDE / OS
 .idea/
