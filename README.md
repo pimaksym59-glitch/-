@@ -60,9 +60,30 @@ mypy
 pytest                      # unit; integration paths need RUN_INTEGRATION=1
 ```
 
+## Configuration (§R3.4, §R12.2)
+
+Single typed loader `app/core/config.py` (Pydantic Settings). Source precedence, highest wins:
+
+```
+CLI (reserved)  >  environment variables  >  .env  >  config/*.yaml  >  code defaults
+```
+
+- **Secrets** (API keys, DB/redis URLs, bot token) load **only** from env / `.env` — never from
+  `config/*.yaml` (the YAML source strips secret fields). Copy `.env.example` → `.env` (gitignored).
+- **Business config** (non-secret platform defaults, §Appendix B) lives in `config/global.yaml`
+  plus a per-env override `config/{development,production}.yaml` (selected by `APP_ENV`).
+- Invalid config **fails fast** (`ValidationError`) at startup: ranges, URLs, enums, dirs.
+- Config snapshot for logs: `Settings.to_safe_dict()` masks secrets.
+
+Check configuration (no network connections):
+
+```bash
+python -m app doctor
+```
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
-1. **Repository structure ✅** → 2. Configuration → 3. Docker → 4. PostgreSQL(+pgvector) →
+1. **Repository structure ✅** → 2. **Configuration ✅** → 3. Docker → 4. PostgreSQL(+pgvector) →
 5. Redis → 6. ORM models → 7. Repositories → 8. Task queue + registry → 9. Scheduler → 10. API →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
