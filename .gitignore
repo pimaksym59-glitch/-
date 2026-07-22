@@ -12,6 +12,9 @@ venv/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Secrets / local config (§R12.2 — never commit secrets)
 .env
