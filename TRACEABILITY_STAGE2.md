@@ -58,21 +58,49 @@
 
 ---
 
-## Этап 3 — Docker (живое обновление; ⚠️ runtime НЕ верифицирован — Docker Engine недоступен)
+## Этап 3 — Docker (живое обновление)
 
-Legenda доп.: **🅲** реализовано как конфиг/артефакт и статически проверено · **⏳R** runtime-
-верификация отложена (требует Docker Engine) — **не** засчитывается как полное подтверждение.
+Статусы **не объединяются** — три независимых столбца. **Runtime Verified** для всех требований,
+которым нужен реальный запуск контейнеров, = **Runtime Verification Pending** (Docker Engine
+недоступен в среде).
 
-| # | Требование | Реализация | Верификация | Статус |
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
 |---|---|---|---|---|
-| 16 | §R12.3 контейнеры = роли одного образа | `docker/Dockerfile` (один образ) + compose `command` на роль | статический разбор compose/Dockerfile | 🅲 / ⏳R |
-| 17 | §R12.4 принципы контейнеров (non-root, multi-stage, healthcheck) | Dockerfile: `USER appuser`, builder→runtime, HEALTHCHECK; infra healthcheck'и | grep-проверки, YAML | 🅲 / ⏳R |
-| 18 | §R12.5 reverse proxy / least exposure | Caddy; порты только у `caddy`; internal/public сети | скрипт (только caddy публикует) | 🅲 / ⏳R |
-| 19 | §R4.1 PostgreSQL 16 + pgvector | `pgvector/pgvector:pg16` + `init.sql` (`vector`,`pg_trgm`) | статически | 🅲 / ⏳R |
+| 16 | §R12.3 контейнеры = роли одного образа | ✅ `docker/Dockerfile` + compose `command`/профиль `app` | ✅ разбор compose/Dockerfile | ⏳ Runtime Verification Pending |
+| 17 | §R12.4 принципы контейнеров (non-root, multi-stage, healthcheck, graceful) | ✅ `USER appuser`, builder→runtime, HEALTHCHECK, exec-form | ✅ grep/структура | ⏳ Runtime Verification Pending |
+| 18 | §R12.5 reverse proxy / least exposure | ✅ Caddy; порты только у `caddy` | ✅ скрипт (только caddy публикует) | ⏳ Runtime Verification Pending |
+| 19 | §R4.1 PostgreSQL 16 + pgvector | ✅ `pgvector/pgvector:pg16` + `init.sql` | ✅ статически | ⏳ Runtime Verification Pending |
 
-> **Не выполнено (Docker недоступен):** `docker build`, `docker compose config`, запуск инфры,
-> healthcheck-переходы, `python -m app doctor` в контейнере. Требования 16–19 **не** отмечены как
-> полностью верифицированные (только 🅲, реализация-как-артефакт).
+> **Runtime Verification Pending** покрывает: `docker build` (+установка полного стека на 3.13),
+> `docker compose config`, `caddy validate`, запуск инфры, healthcheck-переходы, `python -m app
+> doctor` в контейнере, фактическое создание расширений pgvector/pg_trgm. Отслеживается в
+> `TECHNICAL_BACKLOG.md` → раздел **Runtime Verification Required** (RV-1…RV-3). Требования 16–19
+> **не** засчитаны как Runtime Verified.
+
+---
+
+## Этап 4 — Persistence Layer (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 20 | §R4.1 SQLAlchemy 2 async + Alembic | ✅ `app/db/*`, `env.py` | ✅ импорт/mypy; `alembic history` | ⏳ (`alembic upgrade` — RV-4) |
+| 21 | §R4.2 базовые колонки + optimistic `version` | ✅ `Entity`/`Record` | ✅ тесты metadata + `version_id_col` | ⏳ (lock на данных — RV-5) |
+| 22 | §R4.3 UUIDv7 PK (`uuid6`) | ✅ | ✅ тест v7 | n/a (offline OK) |
+| 23 | §R4.4 soft delete + partial unique | ✅ | ✅ metadata (partial-unique индексы) | ⏳ (поведение — RV-5) |
+| 24 | §R4.5/R4.6 векторы + размерности | ✅ (1536/512) | ✅ тесты dims | ⏳ (pgvector/HNSW — RV-5) |
+| 25 | §R4.7 persona≠actor | ✅ | ✅ тест | n/a |
+| 26 | §R4.8 analytics_snapshots (ряд) | ✅ | ✅ metadata | ⏳ |
+| 27 | §R4.9 tasks-схема (dispatch/dedup/slot) | ✅ | ✅ тест индексов | ⏳ (SKIP LOCKED — RV-5) |
+| 28 | §R4.10 все 25 таблиц | ✅ | ✅ тест | n/a |
+| 29 | §R4.11-13 enums | ✅ (8, общий объект) | ✅ | ⏳ (CREATE TYPE — RV-4) |
+| 30 | §R4.14 индексы (btree/partial/GIN/FTS/HNSW) | ✅ | ✅ metadata | ⏳ (создание — RV-4) |
+| 31 | §R3.1 репозитории (data-access, без бизнес-логики) | ✅ `app/repositories/*` | ✅ mypy + wiring-тесты | ⏳ (запросы — RV-5) |
+| 32 | §R3.2 модели — единый дом | ✅ | ✅ тест | n/a |
+| 33 | §R4.11 стратегия транзакций (caller-owned) | ✅ (репо не коммитят) | ✅ ревью/тип | ⏳ (UoW на данных — RV-5) |
+| 34 | §R12.6 Alembic-миграции | ✅ initial + env | ✅ config/цепочка | ⏳ (применение — RV-4) |
+
+> **Runtime Verification Pending (RV-4/RV-5):** `alembic upgrade head`, реальные CRUD, pgvector/HNSW,
+> partial-unique/optimistic-lock — требуют живого PostgreSQL. Отслеживается в TECHNICAL_BACKLOG.
 
 ---
 
@@ -86,8 +114,21 @@ Gaps (impl OK, test missing): 2  → §R4.6 (Gap-1), §Appendix B полные �
 Requirements without implementation: 0
 ```
 
-**Этап 3 (Docker): 4 требования (§R12.3/4/5, §R4.1)** — реализованы как артефакты и статически
-проверены (🅲), **runtime-верификация отложена (⏳R, Docker Engine недоступен)** и не засчитана.
+**Этап 3 (Docker): 4 требования (§R12.3/4/5, §R4.1) — три раздельных статуса:**
+```
+Implemented:                4 / 4
+Statically Verified:        4 / 4
+Runtime Verified:           0 / 4   (Runtime Verification Pending — Docker Engine недоступен)
+```
 
-Ни одно требование Этапов 1–3 **не осталось без реализации**. Пробелы: 2 тестовых ассерта (TG-2/TG-3,
-Deferred) и runtime-верификация Docker (OR-6/OR-7, Open). Блокеров для Этапа 4 нет.
+**Этап 4 (Persistence): 15 требований (§R4.*, §R3.1/3.2, §R12.6) — три раздельных статуса:**
+```
+Implemented:                15 / 15
+Statically Verified:        15 / 15   (metadata/mappers/типы/wiring, offline; 40 тестов)
+Runtime Verified:            0 / 15   (Runtime Verification Pending — нет живого PostgreSQL, RV-4/RV-5)
+```
+
+
+Ни одно требование Этапов 1–4 **не осталось без реализации**. Открытые пробелы: 2 тестовых ассерта
+(TG-2/TG-3, Deferred); **Runtime Verified 0/4 для Docker** и **0/15 для Persistence** (см.
+TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-5). Блокеров для Этапа 5 нет.

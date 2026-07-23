@@ -28,8 +28,8 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 
 | ID | Описание | Причина | Этап | Приоритет | Статус |
 |---|---|---|---|---|---|
-| ADR-C1 | Фиксация версии Python (3.13 vs 3.14) | если остальной стек не встанет на 3.14 — смена floor = архитектурное решение | 4 / 16 | P1 (условный) | Deferred |
-| ADR-C2 | Провайдер UUIDv7 (stdlib 3.14 vs backport для 3.13) | зависит от ADR-C1; влияет на PK-схему (§R4.3) | 6 | P2 | Deferred |
+| ADR-C1 | Фиксация версии Python (3.13 vs 3.14) | стек ставится и на 3.14 (T2.0/T4.0), и в образе на 3.13; смена floor = архитектурное решение | 4 / 16 | P1 (условный) | Deferred (полный стек OK на 3.14) |
+| ADR-C2 | Провайдер UUIDv7 | ~~stdlib 3.14 vs backport для 3.13~~ | 4 | P2 | **✅ Closed (Stage 4: библиотека `uuid6`, решение владельца)** |
 | ADR-C3 | Включение MTProto stats-адаптера (O-1) | ADR-001 `Proposed`; решение за владельцем | 11 | P2 (owner) | Deferred |
 | ADR-C4 | Целевая среда развёртывания (O-2) | ADR-002 `Proposed`; решение за владельцем | 12 | P2 (owner) | Deferred |
 
@@ -42,8 +42,9 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | OR-3 | Прод-секреты через secret manager / Docker secrets, не plaintext `.env` (§R12.2) | требование прод-безопасности | 3 / 12 | P1 | **Partially addressed (Stage 3: секреты только env, не в образ)**; secret manager — Deferred (12) |
 | OR-4 | `database_url` для asyncpg должен использовать схему `postgresql+asyncpg` | валидатор допускает и `postgresql` (F4) | 4 | P2 | Deferred (compose уже использует `+asyncpg`) |
 | OR-5 | `get_settings()` кэширован (`lru_cache`) — на рантайме конфиг фиксируется | смена env после старта не подхватится (F3) | runtime / 4+ | P3 | Deferred |
-| OR-6 | Полный стек (asyncpg/pgvector/aiogram/anthropic/openai/pillow) не проверен установкой | pydantic-стек OK на 3.14 (T2.0); полный стек — только при `docker build` на 3.13 | 3 (build) / 4 / 16 | P1 | **Open — не проверен (Docker Engine недоступен в среде)** |
-| OR-7 | Нативная валидация Docker-артефактов (`docker compose config`, `caddy validate`, `docker build`) | Docker Engine недоступен → выполнена только статика (YAML/структура) | 3 (при Docker) | P2 | **Open — pending Docker Engine** |
+
+> OR-6 и OR-7 (закрываются только при Docker Engine) **перенесены** в раздел
+> **6. Runtime Verification Required** ниже (RV-1/RV-2).
 
 ## 5. Testing Gaps (желательно покрыть тестами)
 
@@ -54,10 +55,24 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | TG-3 | Полный ассерт дефолтов §Appendix B (сейчас проверены 4 из 10) | частичное покрытие (см. TRACEABILITY) | 2 follow-up | P2 | Deferred |
 | TG-4 | Ветка ASCII-fallback в `_marks()` (кодировка stdout) | не покрыта (coverage 20-21) | 2 follow-up | P3 | Deferred |
 | TG-5 | Doctor «всё сконфигурировано» (позитивный путь со всеми секретами) | покрыт только смешанный/пустой путь | 2 follow-up | P3 | Deferred |
+| TG-6 | Тела async-запросов репозиториев покрыты **только** интеграционно | offline coverage репо 63–77% (§R4) | 4 (при БД) | P2 | Deferred |
+
+## 6. Runtime Verification Required (закрывается ТОЛЬКО при доступности Docker Engine / живой БД)
+
+Требуют реального Docker или живого PostgreSQL; в текущей среде выполнить нельзя. **Не** засчитываются как выполненные.
+
+| ID | Описание | Причина | Этап | Приоритет | Статус |
+|---|---|---|---|---|---|
+| RV-1 | `docker build` успешен + **установка полного стека** (asyncpg/pgvector/aiogram/anthropic/openai/pillow) на `python:3.13-slim` | pydantic-стек OK на 3.14 (T2.0); полный стек не ставился (бывш. OR-6) | 3 (при Docker) / 4 / 16 | P1 | Pending Docker Engine |
+| RV-2 | Нативная валидация: `docker compose config`, `caddy validate`; запуск инфры; healthcheck-переходы; `python -m app doctor` **в контейнере** | Docker недоступен → только статика (бывш. OR-7) | 3 (при Docker) | P2 | Pending Docker Engine |
+| RV-3 | Runtime-подтверждение §R12.3/R12.4/R12.5/§R4.1 (pgvector/pg_trgm созданы; least-exposure действует; non-root действует) | требования отмечены Implemented+Statically Verified, но не Runtime Verified (TRACEABILITY 16–19) | 3 (при Docker) | P1 | Pending Docker Engine |
+| RV-4 | `alembic upgrade head` на живом PostgreSQL (extensions/enums/25 таблиц/индексы) | initial-миграция авторская, не применялась (нет БД) | 4 (при БД) | P1 | Pending PostgreSQL |
+| RV-5 | Реальные CRUD-запросы репозиториев + pgvector/HNSW/partial-unique/optimistic-lock | тела async-запросов исполнимы только против БД (§R4) | 4 (при БД) | P1 | Pending PostgreSQL |
 
 ---
 
-**Итого:** 3 Deferred Improvements · 5 Future Architecture Work · 4 ADR Candidates · 7 Operational
-Risks · 5 Testing Gaps. Обновлено после Этапа 3: OR-1 addressed, OR-2/OR-3 partially, OR-6/OR-7 open
-(Docker недоступен). Ни один не блокирует Этап 4. Реализуются строго на указанных этапах и/или по
+**Итого:** 3 Deferred Improvements · 5 Future Architecture Work · 4 ADR Candidates (ADR-C2 **closed**) ·
+5 Operational Risks · 6 Testing Gaps · **5 Runtime Verification Required (RV-1…RV-5)**. Обновлено
+после Этапа 4: ADR-C2 закрыт (uuid6); добавлены RV-4/RV-5 (живой PostgreSQL) и TG-6. Ни один не
+блокирует Этап 5. Реализуются строго на указанных этапах и/или по
 отдельной команде владельца.

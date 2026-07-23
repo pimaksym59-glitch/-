@@ -100,9 +100,26 @@ docker compose run --rm --build api python -m app doctor
 App roles (`api`/`scheduler`/`worker`) are defined under the `app` compose profile and activate at
 their stages (worker=8, scheduler=9, api=10): `docker compose --profile app up -d`.
 
+## Database (§R4)
+
+SQLAlchemy 2.x async ORM (`app/models`, single `Base.metadata`), PostgreSQL 16 + pgvector,
+UUIDv7 primary keys (`uuid6`), soft delete + optimistic `version`. Async engine/session in
+`app/db`; data-access repositories in `app/repositories` (no business logic; the caller owns the
+transaction). Migrations via Alembic (`alembic.ini`, `app/db/migrations`).
+
+```bash
+# requires a live PostgreSQL (DATABASE_URL set); e.g. via `docker compose up -d postgres`
+alembic upgrade head              # apply schema (extensions, enums, 25 tables, indexes)
+RUN_INTEGRATION=1 pytest          # run DB round-trip integration tests
+```
+
+> Applying migrations / running queries needs a database — those paths are **Runtime Verification
+> Pending** in environments without PostgreSQL. Offline unit tests cover models, metadata and
+> repository wiring.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
-1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. PostgreSQL(+pgvector) →
+1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. Redis → 6. ORM models → 7. Repositories → 8. Task queue + registry → 9. Scheduler → 10. API →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
