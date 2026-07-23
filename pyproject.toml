@@ -31,6 +31,7 @@ dependencies = [
     "anthropic",
     "openai",
     "pillow",
+    "uuid6",              # UUIDv7 primary keys (§R4.3); works on Python 3.13+ (owner decision)
 ]
 # UUIDv7 provider (§R4.3) is added at Stage 6 (ORM PKs), not here: stdlib uuid.uuid7() exists only
 # on Python 3.14, but the floor is 3.13; the 3.13-vs-3.14 / backport choice may warrant an ADR
@@ -87,6 +88,8 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 no_implicit_reexport = true
 files = ["app", "tests"]
+# Alembic migration scripts use dynamically-typed `alembic.context`/`op`; not strict-typed.
+exclude = ["app/db/migrations/"]
 
 # ------------------------------------------------------------------------------------
 # Pytest (§R3.9, §R12.12 step 3) — unit always; integration gated by RUN_INTEGRATION=1
