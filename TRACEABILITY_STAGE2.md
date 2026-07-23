@@ -104,6 +104,25 @@
 
 ---
 
+## Этап 5 — Redis Infrastructure (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 35 | §R2.8/§R7.6/§R8.9 распределённый rate-limiter (FA-5) | ✅ `rate_limiter.py` (Lua token-bucket) | ✅ mypy + Lua присутствует | ⏳ (атомарность — RV-6) |
+| 36 | §R2-CACHE/§R9 Redis-кэш (get/set/delete/exists/invalidate) | ✅ `cache.py` | ✅ wiring/сериализация | ⏳ (SET/GET — RV-6) |
+| 37 | §R7.4 идемпотентность (быстрый путь; БД — источник истины) | ✅ `idempotency.py` | ✅ сигнатуры/тип | ⏳ (SET NX — RV-6) |
+| 38 | §R3.7 KeyBuilder (без магических строк) | ✅ `keys.py` | ✅ тесты формата 97–100% | n/a |
+| 39 | §R3.7 TTL в одном месте (без литералов) | ✅ `ttl.py` | ✅ тест (все int>0) 100% | n/a |
+| 40 | Redis async manager + pool + graceful shutdown | ✅ `manager.py` | ✅ ленивость/тип | ⏳ (ping/pool — RV-6) |
+| 41 | Distributed locks (≠ Postgres advisory §R8.10) | ✅ `locks.py` (Lua safe-release) | ✅ CM/тип | ⏳ (SET NX/EVAL — RV-6) |
+| 42 | Pub/Sub примитив (publisher/subscriber/channel) | ✅ `pubsub.py` | ✅ сигнатуры/тип | ⏳ (доставка — RV-6) |
+| 43 | §R12.2 `redis_url` — секрет только env | ✅ (manager из settings) | ✅ (raise без URL) | n/a |
+
+> **Runtime Verification Pending (RV-6):** реальные SET/GET/EVAL(Lua)/SUBSCRIBE, атомарность
+> лимитера/локов, pub/sub, connection pool — требуют живого Redis.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -128,7 +147,13 @@ Statically Verified:        15 / 15   (metadata/mappers/типы/wiring, offline
 Runtime Verified:            0 / 15   (Runtime Verification Pending — нет живого PostgreSQL, RV-4/RV-5)
 ```
 
+**Этап 5 (Redis): 9 требований (§R2.8/§R7.6/§R8.9, §R2-CACHE/§R9, §R7.4, §R3.7, §R12.2) — три статуса:**
+```
+Implemented:                 9 / 9
+Statically Verified:         9 / 9   (keys/ttl/wiring offline; 13 тестов; keys/ttl coverage 100%)
+Runtime Verified:            0 / 9   (Runtime Verification Pending — нет живого Redis, RV-6)
+```
 
-Ни одно требование Этапов 1–4 **не осталось без реализации**. Открытые пробелы: 2 тестовых ассерта
-(TG-2/TG-3, Deferred); **Runtime Verified 0/4 для Docker** и **0/15 для Persistence** (см.
-TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-5). Блокеров для Этапа 5 нет.
+Ни одно требование Этапов 1–5 **не осталось без реализации**. Открытые пробелы: 2 тестовых ассерта
+(TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis (см.
+TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-6). Блокеров для следующего этапа нет.

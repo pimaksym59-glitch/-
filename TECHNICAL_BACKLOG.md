@@ -22,7 +22,7 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | FA-2 | Выбор фейка провайдера при `secret is None` (§R2.10) | контракт задекларирован, не реализован (F6) | 11 | P1 | Deferred |
 | FA-3 | Правило приоритета `telegram_bot_token` (платформенный) vs per-channel `bot_token_ref` (БД) | конфликт двух источников токена (F5) | 7 / 16 | P2 | Deferred |
 | FA-4 | Структурированный JSON-логгер + маскирование секретов (§R12.9) | конфиг хранит только `log_level`; логгера нет | этап логирования | P2 | Deferred |
-| FA-5 | Распределённый rate-limiter (Redis token-bucket, §R7.6/§R8.9) | in-process семафор не масштабируется на N воркеров | 8 / 12 | P1 | Deferred |
+| FA-5 | Распределённый rate-limiter (Redis token-bucket, §R7.6/§R8.9) | in-process семафор не масштабируется на N воркеров | 5 (код) / 8/12 (интеграция) | P1 | **Implemented in code (Stage 5, `app/core/redis/rate_limiter.py`)**; runtime — RV-6; интеграция в scheduler/telegram — этапы 8/16 |
 
 ## 3. ADR Candidates (потенциально требуют нового ADR)
 
@@ -68,11 +68,12 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-3 | Runtime-подтверждение §R12.3/R12.4/R12.5/§R4.1 (pgvector/pg_trgm созданы; least-exposure действует; non-root действует) | требования отмечены Implemented+Statically Verified, но не Runtime Verified (TRACEABILITY 16–19) | 3 (при Docker) | P1 | Pending Docker Engine |
 | RV-4 | `alembic upgrade head` на живом PostgreSQL (extensions/enums/25 таблиц/индексы) | initial-миграция авторская, не применялась (нет БД) | 4 (при БД) | P1 | Pending PostgreSQL |
 | RV-5 | Реальные CRUD-запросы репозиториев + pgvector/HNSW/partial-unique/optimistic-lock | тела async-запросов исполнимы только против БД (§R4) | 4 (при БД) | P1 | Pending PostgreSQL |
+| RV-6 | Redis-runtime: SET/GET/EXPIRE/EVAL(Lua)/SUBSCRIBE, атомарность token-bucket и lock safe-release, pub/sub-доставка, connection pool | тела async-методов исполнимы только против Redis (§R2.8/§R7.6) | 5 (при Redis) | P1 | Pending Redis |
 
 ---
 
-**Итого:** 3 Deferred Improvements · 5 Future Architecture Work · 4 ADR Candidates (ADR-C2 **closed**) ·
-5 Operational Risks · 6 Testing Gaps · **5 Runtime Verification Required (RV-1…RV-5)**. Обновлено
-после Этапа 4: ADR-C2 закрыт (uuid6); добавлены RV-4/RV-5 (живой PostgreSQL) и TG-6. Ни один не
-блокирует Этап 5. Реализуются строго на указанных этапах и/или по
+**Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-5 **implemented in code**) ·
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **6 Runtime Verification
+Required (RV-1…RV-6)**. Обновлено после Этапа 5: FA-5 реализован кодом (rate-limiter); добавлен RV-6
+(живой Redis). Ни один не блокирует следующий этап. Реализуются строго на указанных этапах и/или по
 отдельной команде владельца.

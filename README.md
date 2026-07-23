@@ -117,10 +117,27 @@ RUN_INTEGRATION=1 pytest          # run DB round-trip integration tests
 > Pending** in environments without PostgreSQL. Offline unit tests cover models, metadata and
 > repository wiring.
 
+## Redis (§R2.8/§R7.6/§R8.9/§R2-CACHE)
+
+Async infrastructure in `app/core/redis` (no business logic): lazy `RedisManager` (connection pool,
+graceful shutdown), centralized `KeyBuilder` (`tai:{env}:{namespace}:{parts}` — the only place keys
+are built), all TTLs in `ttl.py`, and primitives — `Cache` (get/set/delete/exists/invalidate),
+`IdempotencyStore` (fast-path; source of truth stays Postgres `tasks.dedup_key`), `RateLimiter`
+(distributed token-bucket via atomic Lua), `DistributedLock` (SET NX + Lua safe-release; **not** the
+Postgres advisory lock), and `Publisher`/`Subscriber`.
+
+```bash
+# requires a live Redis (REDIS_URL set); e.g. via `docker compose up -d redis`
+RUN_INTEGRATION=1 pytest          # run Redis integration tests
+```
+
+> Redis command execution (SET/GET, Lua, locks, rate limiter, pub/sub) needs a live Redis — those
+> paths are **Runtime Verification Pending** without one. Offline tests cover keys, TTLs and wiring.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
-5. Redis → 6. ORM models → 7. Repositories → 8. Task queue + registry → 9. Scheduler → 10. API →
+5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. Task queue + registry → 9. Scheduler → 10. API →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
