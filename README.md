@@ -134,10 +134,29 @@ RUN_INTEGRATION=1 pytest          # run Redis integration tests
 > Redis command execution (SET/GET, Lua, locks, rate limiter, pub/sub) needs a live Redis — those
 > paths are **Runtime Verification Pending** without one. Offline tests cover keys, TTLs and wiring.
 
+## Task Queue (§R2.2/§R8)
+
+Custom async queue engine in `app/workers` (no Celery/RQ). Postgres `tasks` is the backbone;
+`Dispatcher` claims due tasks with `FOR UPDATE SKIP LOCKED`; the `Executor` is the single place for
+execution, exception handling, status changes and retry; the `TaskRegistry` maps each `TaskType` to
+a typed handler; continuation-chaining is declarative data (`pipeline.py`, no if/else); retry uses
+pure exponential backoff + jitter; DLQ is the `dead` status; the `Worker` loop supports graceful
+shutdown + drain. Metrics/logging/hooks are infra extension points.
+
+```bash
+# requires a live PostgreSQL + Redis (DATABASE_URL, REDIS_URL)
+python -m app.workers.run          # start a worker (scale by running several)
+RUN_INTEGRATION=1 pytest           # run queue integration tests
+```
+
+> Claiming (SKIP LOCKED), status persistence, enqueue/dequeue, idempotency and multi-worker
+> competition need live PostgreSQL/Redis — **Runtime Verification Pending** without them. Offline
+> tests cover all pure logic and the full Executor decision flow (100%) on fakes.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
-5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. Task queue + registry → 9. Scheduler → 10. API →
+5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. Scheduler → 10. API →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 

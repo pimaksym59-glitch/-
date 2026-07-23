@@ -123,6 +123,30 @@
 
 ---
 
+## Этап 8 — Task Queue & Registry (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 44 | §R2.2 queue-backbone (Postgres `tasks`) | ✅ dispatcher/producer | ✅ типы/wiring | ⏳ (SKIP LOCKED/enqueue — RV-7) |
+| 45 | §R2.5/§R8.4 continuation-chaining (не DAG, декларативно) | ✅ `pipeline.py` | ✅ тест цепочки | n/a |
+| 46 | §R8.1 worker=executor | ✅ `executor.py` | ✅ **100% offline** | ⏳ (реальный запуск — RV-7) |
+| 47 | §R8.2 типы/статусы задач | ✅ (enum Этап 4) | ✅ автомат переходов | n/a |
+| 48 | §R8.3 lifecycle статусов | ✅ `status.py` | ✅ тест | n/a |
+| 49 | §R8.9 конкуренция/распред. лимитер | ✅ (SKIP LOCKED + Redis RL) | ✅ типы | ⏳ (мульти-worker — RV-7) |
+| 50 | §R8.10 SKIP LOCKED claim | ✅ dispatcher/repo | ✅ запрос собран | ⏳ (claim — RV-7) |
+| 51 | §R8.11 DLQ = `dead` | ✅ executor | ✅ тест ветки | ⏳ (персистентность — RV-7) |
+| 52 | §R8.14 cancellation/pause | ✅ (cancelled-skip) | ✅ тест | ⏳ (mid-exec — RV-7) |
+| 53 | §R1.10/§R7.5 fail-safe + retry classify | ✅ `retry.py` | ✅ 100% unit | n/a |
+| 54 | §Appendix B backoff (30s/×2/1h/jitter) | ✅ `backoff.py` | ✅ 100% unit | n/a |
+| 55 | §R7.4 идемпотентность (Postgres источник истины) | ✅ producer/`dedup_key` | ✅ типы | ⏳ (unique/Redis — RV-7) |
+| 56 | §R3.1 dispatcher без бизнес-логики | ✅ | ✅ ревью | n/a |
+| 57 | §R12.4 graceful shutdown/drain | ✅ `worker.py` | ✅ тест loop | ⏳ (сигналы — RV-7) |
+
+> **Runtime Verification Pending (RV-7):** claim SKIP LOCKED, персистентность статусов, enqueue,
+> идемпотентность, конкуренция воркеров, entrypoint — требуют живых PostgreSQL+Redis.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -154,6 +178,13 @@ Statically Verified:         9 / 9   (keys/ttl/wiring offline; 13 тестов; 
 Runtime Verified:            0 / 9   (Runtime Verification Pending — нет живого Redis, RV-6)
 ```
 
-Ни одно требование Этапов 1–5 **не осталось без реализации**. Открытые пробелы: 2 тестовых ассерта
-(TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis (см.
-TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-6). Блокеров для следующего этапа нет.
+**Этап 8 (Task Queue): 14 требований (§R2.2/§R8.*, §R7.4-5, §Appendix B, §R3.1, §R12.4) — три статуса:**
+```
+Implemented:                14 / 14
+Statically Verified:        14 / 14   (pure-логика + Executor 100% на фейках; 70 тестов)
+Runtime Verified:            0 / 14   (Runtime Verification Pending — нет живых PG+Redis, RV-7)
+```
+
+Ни одно требование Этапов 1–8 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
+0/14 Queue (см. TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-7). Блокеров для Этапа 9 нет.
