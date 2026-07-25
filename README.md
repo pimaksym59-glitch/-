@@ -175,10 +175,32 @@ RUN_INTEGRATION=1 pytest            # run scheduler integration tests
 > **Runtime Verification Pending** without it. Offline tests cover all time math (slot/DST/missed/
 > holiday) and scanner/materializer/engine/runner logic on fakes.
 
+## API (§R3.5/§R3.1/§R10.1/§R12.10, contract `API_SPEC.md`)
+
+The HTTP layer in `app/api` is infrastructure only — business endpoints arrive with their services in
+later stages. `create_app()` is a factory (no global singleton) that wires, per instance: a single
+lifespan (lazy — nothing connects on import), DI providers, a `/api/v1` router, exception handlers
+that map **every** error to one Error Schema `{"error":{code,message,details,request_id}}`, and
+independent middleware in an explicit order (Request-ID → Logging → CORS → GZip). Routes are thin —
+they validate input and call a service (§R3.1); the API layer never touches `app.db`/SQL directly, so
+DB access is exposed as a *service*. Health splits liveness (`/api/v1/health/live`) from readiness
+(`/api/v1/health/ready`, 200/503), the latter built on injectable probes so real PostgreSQL/Redis
+checks slot in without an API change. Auth is an extension seam only (no OAuth/JWT/RBAC yet);
+background tasks are for trivial side-effects — domain work goes through the queue (§R10.1).
+
+```bash
+uvicorn app.main:app                # serve the API (RV-9: needs a real ASGI run)
+RUN_INTEGRATION=1 pytest            # run API integration tests (readiness against live PG/Redis)
+```
+
+> Real readiness probing (PostgreSQL/Redis), the ASGI server and lifespan against live connections are
+> **Runtime Verification Pending** (RV-9). Offline tests cover the factory, error mapping, middleware,
+> pagination, OpenAPI (no warnings) and health logic (fake probes) via an ASGI transport.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
-5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. API →
+5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 

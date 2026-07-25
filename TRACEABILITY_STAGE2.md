@@ -170,6 +170,27 @@
 
 ---
 
+## Этап 10 — API (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 70 | §R3.5 entrypoint `app/main.py` (`uvicorn app.main:app`) | ✅ `main.py` = `create_app()` | ✅ импорт без соединений | ⏳ (запуск сервера — RV-9) |
+| 71 | §R3.1 application factory, без глобального singleton | ✅ `api/app.py` `create_app` | ✅ тест изоляции экземпляров | n/a |
+| 72 | §R3.1 тонкие роуты → services (без SQL/логики в api) | ✅ health → `HealthService`; guard | ✅ `test_layering` + ревью | ⏳ (реальный сервис — RV-9) |
+| 73 | §R12.4 единый lifespan, ленивая инициализация | ✅ `api/lifespan`+`services/lifecycle` | ✅ тест enter/exit без connect | ⏳ (dispose соединений — RV-9) |
+| 74 | DI, без глобальных сервисов, override | ✅ `api/deps` | ✅ тест `dependency_overrides` | n/a |
+| 75 | §R12.10 liveness ≠ readiness | ✅ `/health/live` + `/health/ready` | ✅ тесты 200/503 на фейках | ⏳ (реальная проба PG/Redis — RV-9) |
+| 76 | Error Schema (единая); ни одно исключение не утекает | ✅ `api/errors`+`core/errors`+`schemas/errors` | ✅ тесты всех веток + request_id | n/a |
+| 77 | Middleware независимы, порядок явный; request_id в логах | ✅ `middleware/{request_id,logging}` + CORS/GZip | ✅ тесты id/CORS/gzip/order | ⏳ (сквозной «по проводу» — RV-9) |
+| 78 | Pagination общая, entity-agnostic (limit≤100) | ✅ `api/pagination`+`schemas/pagination` | ✅ тесты границ + `Page[T]` | n/a |
+| 79 | §R10.4/R10.5 auth — точки расширения (без OAuth/JWT/RBAC) | ✅ `api/auth` (anonymous seam) | ✅ тест anonymous+override | n/a |
+| 80 | §R10.1 background-tasks — seam; домен через очередь / OpenAPI без warnings | ✅ `api/background` + factory OpenAPI | ✅ тесты seam + openapi(0 warnings) | ⏳ (обслуживание — RV-9) |
+
+> **Runtime Verification Pending (RV-9):** readiness к живым PostgreSQL/Redis, `uvicorn app.main:app`,
+> lifespan против настоящих соединений, сквозной CORS/gzip — требуют живых сервисов/сервера.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -216,7 +237,16 @@ Statically Verified:        12 / 12   (время slot/DST/missed/holiday 98–1
 Runtime Verified:            0 / 12   (Runtime Verification Pending — нет живого PostgreSQL, RV-8)
 ```
 
-Ни одно требование Этапов 1–9 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 10 (API): 11 требований (§R3.5, §R3.1, §R12.4, §R12.10, §R10.1/R10.4/R10.5, §R2.6, §R4.2 +
+API_SPEC) — три статуса:**
+```
+Implemented:                11 / 11
+Statically Verified:        11 / 11   (factory/errors/middleware/health/pagination/openapi на ASGI-
+                                       клиенте; API-модули 94–100%; 37 offline тестов; 0 type: ignore)
+Runtime Verified:            0 / 11   (Runtime Verification Pending — нет живых PG/Redis/ASGI, RV-9)
+```
+
+Ни одно требование Этапов 1–10 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
-0/14 Queue, 0/12 Scheduler (см. TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-8).
-Блокеров для Этапа 10 нет.
+0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
+RV-1…RV-9). Блокеров для Этапа 11 нет.
