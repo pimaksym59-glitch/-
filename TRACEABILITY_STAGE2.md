@@ -147,6 +147,29 @@
 
 ---
 
+## Этап 9 — Scheduler (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 58 | §R8.1 scheduler=продюсер (материализация через Producer, без бизнес-логики) | ✅ `scheduler.py`/`materializer.py` | ✅ тик на фейках 98%; materializer 100% | ⏳ (реальная вставка — RV-8) |
+| 59 | §R8.5 LEAD_TIME (голова на `slot−lead`, `target_slot` в payload) | ✅ `materializer.py`/`timing.apply_lead_time` | ✅ unit (head vs periodic run_at) | n/a (offline OK) |
+| 60 | §R8.6 timezone/DST (UTC-хранение, IANA-расчёт; nonexistent→вперёд, ambiguous→первое) | ✅ `timing.to_utc` | ✅ **unit на реальных переходах Europe/Berlin** | n/a |
+| 61 | §R8.7 publication windows (вне окна → ближайшее валидное, не отбрасывается) | ✅ `timing.shift_into_window` | ✅ unit (before/inside/after) | n/a |
+| 62 | §R8.10 мульти-инстанс (advisory lock + идемпотентный слот) | ✅ `advisory.py` + `dedup_key` pre-filter | ✅ SQL-текст/ключ offline; тик skip-locked | ⏳ (реальный lock/гонка — RV-8) |
+| 63 | §R8.12 периодические сценарии как schedules (backup/cleanup/reindex/health_check) | ✅ (task_type сохранён; `run_at=slot`) | ✅ unit (periodic сохраняет тип/время) | ⏳ (RV-8) |
+| 64 | §R8.13 holiday → тег плана (генерация — AI) | ✅ `holidays.py` + payload-тег | ✅ unit (calendar-данные) 100% | n/a |
+| 65 | §R8.14 pause/resume (paused/archived канал → пропуск) | ✅ `scanner.due_slots` | ✅ unit (paused/archived skip) | ⏳ (чтение статуса — RV-8) |
+| 66 | §R8.10 recovery (stateless re-scan + missed-policy + grace) | ✅ `missed.py`/`runner.py` | ✅ unit (missed/grace/next); loop drain | ⏳ (рестарт-цикл — RV-8) |
+| 67 | §R2.2 материализация в очередь через Producer (не дублирует Task Queue) | ✅ (только `TaskProducer`) | ✅ fake-producer тесты | ⏳ (RV-8) |
+| 68 | §R3.1 без бизнес-логики / data-access репозиторий | ✅ `schedule_repository.py` (read-only) | ✅ mypy + wiring | ⏳ (запрос — RV-8) |
+| 69 | §R12.4 graceful shutdown/drain | ✅ `runner.py` | ✅ тест loop (drain/stop/idle) | ⏳ (сигналы — RV-8) |
+
+> **Runtime Verification Pending (RV-8):** `pg_try_advisory_lock`/`unlock`, чтение `schedules`+join,
+> реальная материализация через Producer, идемпотентность (двойной тик, pre-filter + UNIQUE
+> `dedup_key`), конкуренция N инстансов, `python -m app.scheduler.run` — требуют живого PostgreSQL.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -185,6 +208,15 @@ Statically Verified:        14 / 14   (pure-логика + Executor 100% на ф
 Runtime Verified:            0 / 14   (Runtime Verification Pending — нет живых PG+Redis, RV-7)
 ```
 
-Ни одно требование Этапов 1–8 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 9 (Scheduler): 12 требований (§R8.1/5/6/7/10/12/13/14, §R2.2, §R3.1, §R12.4) — три статуса:**
+```
+Implemented:                12 / 12
+Statically Verified:        12 / 12   (время slot/DST/missed/holiday 98–100%; scanner/materializer/
+                                       tick/runner на фейках; 60 offline тестов)
+Runtime Verified:            0 / 12   (Runtime Verification Pending — нет живого PostgreSQL, RV-8)
+```
+
+Ни одно требование Этапов 1–9 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
-0/14 Queue (см. TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-7). Блокеров для Этапа 9 нет.
+0/14 Queue, 0/12 Scheduler (см. TECHNICAL_BACKLOG → Runtime Verification Required, RV-1…RV-8).
+Блокеров для Этапа 10 нет.

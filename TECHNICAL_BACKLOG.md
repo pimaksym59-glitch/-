@@ -70,11 +70,12 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-5 | Реальные CRUD-запросы репозиториев + pgvector/HNSW/partial-unique/optimistic-lock | тела async-запросов исполнимы только против БД (§R4) | 4 (при БД) | P1 | Pending PostgreSQL |
 | RV-6 | Redis-runtime: SET/GET/EXPIRE/EVAL(Lua)/SUBSCRIBE, атомарность token-bucket и lock safe-release, pub/sub-доставка, connection pool | тела async-методов исполнимы только против Redis (§R2.8/§R7.6) | 5 (при Redis) | P1 | Pending Redis |
 | RV-7 | Queue-runtime: `FOR UPDATE SKIP LOCKED` claim, персистентность статусов, enqueue/dequeue, idempotency, конкуренция N воркеров, `python -m app.workers.run` | тела dispatcher/producer и entrypoint исполнимы только против PG+Redis (§R2.2/§R8) | 8 (при PG+Redis) | P1 | Pending PostgreSQL + Redis |
+| RV-8 | Scheduler-runtime: `pg_try_advisory_lock`/`unlock`, чтение `schedules`+join channel, реальная материализация в `tasks` через Producer, идемпотентность (двойной тик не создаёт дубль — pre-filter + UNIQUE `dedup_key`), конкуренция N инстансов, `python -m app.scheduler.run` | тела advisory/repo/entrypoint исполнимы только против живого PostgreSQL (§R8.1/§R8.10) | 9 (при PostgreSQL) | P1 | Pending PostgreSQL |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-5 **implemented in code**) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **7 Runtime Verification
-Required (RV-1…RV-7)**. Обновлено после Этапа 8: добавлен RV-7 (queue-runtime, живые PG+Redis). Ни
-один не блокирует следующий этап. Реализуются строго на указанных этапах и/или по
-отдельной команде владельца.
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **8 Runtime Verification
+Required (RV-1…RV-8)**. Обновлено после Этапа 9: добавлен RV-8 (scheduler-runtime, живой PostgreSQL);
+вычисления времени (slot/DST/missed/holiday) — чистые, offline-покрытие 98–100%. Ни один не блокирует
+следующий этап. Реализуются строго на указанных этапах и/или по отдельной команде владельца.

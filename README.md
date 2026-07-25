@@ -153,10 +153,32 @@ RUN_INTEGRATION=1 pytest           # run queue integration tests
 > competition need live PostgreSQL/Redis — **Runtime Verification Pending** without them. Offline
 > tests cover all pure logic and the full Executor decision flow (100%) on fakes.
 
+## Scheduler (§R8.1/§R8.5–R8.7/§R8.10/§R8.13)
+
+The scheduler in `app/scheduler` is the queue **producer** (no business logic): it scans enabled
+`schedules`, computes due slots in each channel's IANA timezone, and materializes them into `tasks`
+**only through the Stage-8 `TaskProducer`**. Time math is pure and DST-aware (`timing.py`):
+nonexistent local times shift forward, ambiguous times take the first occurrence; cron and
+`day_of_week`+`time_local` forms are both supported. `missed.py` recovers recently-missed slots
+within a grace window; `holidays.py` tags a content-plan hint (content itself is chosen by the AI
+stage). LEAD_TIME (§R8.5): a pipeline head starts at `slot − lead`, with the exact publish time in
+`payload.target_slot`. Multi-instance safety comes from a Postgres advisory lock plus the unique
+`dedup_key`; the scheduler pre-filters already-materialized slots so a re-scan enqueues nothing.
+
+```bash
+# requires a live PostgreSQL (DATABASE_URL)
+python -m app.scheduler.run         # start the scheduler (safe to run several; advisory-locked)
+RUN_INTEGRATION=1 pytest            # run scheduler integration tests
+```
+
+> Advisory lock, reading `schedules`, real materialization and idempotency need a live PostgreSQL —
+> **Runtime Verification Pending** without it. Offline tests cover all time math (slot/DST/missed/
+> holiday) and scanner/materializer/engine/runner logic on fakes.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
-5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. Scheduler → 10. API →
+5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. API →
 11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
