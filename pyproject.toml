@@ -46,6 +46,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "types-PyYAML",       # mypy stubs for pyyaml
+    "httpx",              # ASGI transport for offline API tests (§R13.1 stage 10)
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     redis_url: str | None = None
     storage_dir: Path = PROJECT_ROOT / "storage"
 
+    # --- API (§R13.1 stage 10) — CORS closed by default (empty allowlist) ---
+    cors_origins: list[str] = Field(default_factory=list)
+    cors_allow_credentials: bool = False
+
     # --- secrets: ONLY from env, no default value; None => provider fake (§R2.10) ---
     anthropic_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None
