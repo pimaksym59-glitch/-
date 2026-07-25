@@ -75,14 +75,15 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-10 | Real-provider runtime: адаптеры вендоров (OpenAI/Anthropic/aiogram) + живые API-вызовы; фактическое поведение Retry/Timeout/Circuit-Breaker/rate-limit под нагрузкой; установка/импорт `anthropic/openai/aiogram` на 3.14 | Этап 11 = только абстракции + фейки (offline); реальные адаптеры/seam-политики появляются на этапах 12/15/16 | 12/15/16 (при внешних API) | P1 | Pending внешние API |
 | RV-11 | AI-Engine runtime: генерация против **живых** LLM (Anthropic/OpenAI) — фактический model-routing/fallback/streaming/стоимость/латентность под реальными моделями | Этап 12 = движок offline на `FakeLLMProvider`; реальные модели — с адаптерами (наследует RV-10) | 12 (при живых LLM) | P1 | Pending живые LLM |
 | RV-12 | RAG runtime: реальные **pgvector**-store'ы, живые embedding-вызовы, фактический semantic/keyword/hybrid-поиск + reranking под живыми PostgreSQL + embedding-API; keyword/hybrid(RRF)/cache/versioning/retention — расширения seam'ов | Этап 13 = kernel offline на фейках + `FakeEmbeddingProvider`; реальные бэкенды/поиск — с адаптерами | 13 (при PG+embeddings) | P1 | Pending PG + embeddings |
+| RV-13 | Validation runtime: реальный **LLM-judge** (humanness §R5.8) и **vector-стадия dedup** (§R5.7 через Memory/RAG+embeddings) под живыми LLM/embedding-API; ML-валидаторы — расширения | Этап 14 = движок offline (rule-gates/trigram/stop-list) + фейк-порты; реальные judge/vector-dedup — через порты | 14 (при LLM+embeddings) | P1 | Pending LLM + embeddings |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **12 Runtime Verification
-Required (RV-1…RV-12)**. Обновлено после Этапа 13: добавлен RV-12 (RAG против живых pgvector/embeddings);
-Memory/RAG-фундамент — **storage-agnostic, полностью offline** на фейках, покрытие подсистемы ~99%,
-`mypy --strict` без `type: ignore`. Keyword/hybrid/reranking/cache/versioning/retention — seam'ы/
-расширения (RV-12). Ни один пункт не блокирует
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **13 Runtime Verification
+Required (RV-1…RV-13)**. Обновлено после Этапа 14: добавлен RV-13 (Validation LLM-judge/vector-dedup);
+Validation Engine — **полностью независимая подсистема** (stdlib-only), offline на rule-gates + фейк-
+портах, покрытие подсистемы ~99%, `mypy --strict` без `type: ignore`. ML-валидаторы — расширение (RV-13).
+Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.

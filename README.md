@@ -266,11 +266,31 @@ pytest tests/rag tests/memory tests/services/test_rag.py   # offline on fakes + 
 > are **Runtime Verification Pending** (RV-12). Offline tests cover the kernel, chunking, filters
 > (channel isolation), retrieval/ranking/assembly, ingestion and both context sources on fakes.
 
+## Validation (§R5.5–R5.9)
+
+The Validation Engine in `app/validators` is a **fully independent** subsystem — it imports **no other
+app package** (stdlib only). Each rule (deduplication, humanization, persona, policy) is its own module
+behind a uniform `Rule` Protocol; a typed, thread-safe `RuleRegistry` and a modular pipeline collect
+immutable `Finding`s with a first-class `Severity`; **declarative** `QualityGatePolicy` decides pass/
+fail; and an auto-rewrite `decide()` returns accept/rewrite/needs_review **without ever running a
+rewrite** (the AI Engine owns that loop, §R5.6). Semantic deduplication (§R5.7) and the humanness
+LLM-judge (§R5.8) integrate only through the `DuplicationChecker`/`HumannessScorer` ports (Memory/RAG
+and LLM stay behind ports; no LLM/embedding calls in the engine). The AI Engine sees validation only
+via the Stage-12 `OutputValidator` Protocol, adapted in `app.services.validation`.
+
+```bash
+pytest tests/validators tests/services/test_validation.py   # offline, deterministic fakes
+```
+
+> The real LLM-judge and the embedding-based deduplication stage are **Runtime Verification Pending**
+> (RV-13). Offline tests cover the rule engine, all four rules (trigram/sentence dedup, stop-list
+> humanization, persona, policy), quality gates, decision and the OutputValidator adapter on fakes.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
-11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. Validation →
+11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

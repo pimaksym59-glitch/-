@@ -262,6 +262,27 @@
 
 ---
 
+## Этап 14 — Validation Engine (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 121 | §R5.5 self-review механизм (1): rule-based hard gates | ✅ `validators/engine`+rules | ✅ end-to-end на фейках; ~99% | n/a |
+| 122 | §R5.5 механизм (2): LLM-judge — через порт `HumannessScorer` | ✅ порт + фейк | ✅ unit (фейк) | ⏳ (реальный judge — RV-13) |
+| 123 | §R5.6 rewrite-**decision** (не выполнение) | ✅ `decision.decide` | ✅ unit (accept/rewrite/needs_review) | n/a |
+| 124 | §R5.7 duplicate cascade (trigram→sentence→vector-порт) | ✅ `deduplication` | ✅ unit (trigram/sentence offline; vector-порт) | ⏳ (vector-dedup — RV-13) |
+| 125 | §R5.8/§R1.6 humanization (стоп-лист + humanness-порог) | ✅ `humanization` (стоп-лист чистый) | ✅ unit | ⏳ (humanness judge — RV-13) |
+| 126 | §R5.9 quality hard-gates блокируют (декларативно) | ✅ `gates.QualityGatePolicy` | ✅ unit (hard/soft) | n/a |
+| 127 | §R9 dedup vector — публичные Memory/RAG (через порт) | ✅ `DuplicationChecker` port | ✅ фейк offline; реальный — публичные интерфейсы | ⏳ (RV-13) |
+| 128 | §R3.1 Validation ⟂ AI Engine; видима только через Protocol | ✅ `app/validators` (stdlib-only) + адаптер в services | ✅ **импорт-проверка** + guard | n/a |
+| 129 | §R3.8 правила/гейты расширяемы (registry) | ✅ `RuleRegistry` (типизирован/потокобезопасен) | ✅ unit (register/unknown) | n/a |
+| 130 | Severity/Finding/Report/RuleContext immutable | ✅ frozen dataclass | ✅ unit (FrozenInstanceError) | n/a |
+| 131 | ML-validators — точки расширения (не реализованы) | ✅ `Rule` Protocol = seam | ✅ (реализаций нет) | ⏳ (ML — RV-13) |
+
+> **Runtime Verification Pending (RV-13):** реальный LLM-judge (humanness §R5.8) и vector-стадия dedup
+> (§R5.7 через Memory/RAG+embeddings), ML-валидаторы — **вне объёма Этапа 14**.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -344,8 +365,17 @@ Statically Verified:        15 / 15   (types/similarity/embedding/chunking/filte
 Runtime Verified:            n/a       (Этап 13 offline на фейках+FakeEmbeddingProvider; pgvector/поиск — RV-12)
 ```
 
-Ни одно требование Этапов 1–13 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 14 (Validation Engine): 11 требований (§R5.5–R5.9, §R1.6, §R9, §R3.1/3.8) — три статуса:**
+```
+Implemented:                11 / 11
+Statically Verified:        11 / 11   (rules/registry/gates/pipeline/decision/engine + композиция +
+                                       адаптер OutputValidator; подсистема ~99%; 22 теста; 0 type: ignore;
+                                       validators ⟂ всё остальное (stdlib-only))
+Runtime Verified:            n/a       (Этап 14 offline на rule-gates + фейк-портах; LLM-judge/vector-dedup — RV-13)
+```
+
+Ни одно требование Этапов 1–14 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-12). Этапы 11–13 — offline-полные (real-provider/LLM/RAG runtime — RV-10/RV-11/RV-12). Блокеров
-для Этапа 14 нет.
+RV-1…RV-13). Этапы 11–14 — offline-полные (real-provider/LLM/RAG/Validation runtime —
+RV-10/RV-11/RV-12/RV-13). Блокеров для Этапа 15 нет.
