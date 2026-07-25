@@ -214,6 +214,29 @@
 
 ---
 
+## Этап 12 — AI Engine (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 93 | §R5.1 оркестрация generate_text (движок = оркестратор, без правил) | ✅ `content/engine` | ✅ end-to-end на фейках; engine 100% | ⏳ (живые LLM — RV-11) |
+| 94 | §R2.10 только Provider Protocols Этапа 11 (без вендорских вызовов) | ✅ `LLMProvider` через selection | ✅ guard + фейк-провайдер | ⏳ (реальный клиент — RV-11) |
+| 95 | §R5.3 динамический prompt-builder (модульный, без модель-специфики) | ✅ `pipeline`+`templates` | ✅ contributors/render; extensibility | n/a |
+| 96 | §R5.2/§R9.8 context ≤ `MAX_CONTEXT_TOKENS`; few-shot K=3–5 через порты | ✅ `context`+`budget`+`sources` | ✅ бюджет/усечение; порты (не БД) | ⏳ (реальная Memory/RAG — Этап 13) |
+| 97 | Token budget детерминирован через `TokenEstimator` (без токенайзера) | ✅ `budget` | ✅ эвристика 100% | n/a |
+| 98 | Provider selection ≠ Model selection (независимы, §R5.10) | ✅ `selection` (2 механизма) | ✅ раздельные тесты | n/a |
+| 99 | §R5.10 model routing (opus/haiku) декларативно | ✅ role→tiers таблица | ✅ тесты роутинга | ⏳ (реальные модели — RV-11) |
+| 100 | Structured output — отдельный слой (json_mode + Pydantic) | ✅ `structured` | ✅ parse valid/invalid; seam | ⏳ (реальный JSON-режим — RV-11) |
+| 101 | §R5.5 validation — расширяемый seam (гейты — Этап 14) | ✅ `validation` (AlwaysPass) | ✅ pass/fail управляет rewrite | n/a |
+| 102 | §R5.6 rewrite (`MAX_REWRITES`) ≠ infra retry | ✅ `rewrite` | ✅ цикл/исчерпание | n/a |
+| 103 | §R2.9/R5.10 fallback только в движке; очередь не выбирает модель | ✅ `fallback` | ✅ tiers/permanent/exhaustion | ⏳ (реальный fallback — RV-11) |
+| 104 | Streaming/Cost/Metrics/Logging — только hooks | ✅ `streaming`/`cost`+observability | ✅ no-op/recording тесты | ⏳ (реальные — RV-11) |
+| 105 | §R3.1 движок в домене, без БД/HTTP/бизнес-правил | ✅ `app/content` | ✅ `test_layering` зелёный | n/a |
+
+> **Runtime Verification Pending (RV-11):** генерация против живых LLM (Anthropic/OpenAI) — фактический
+> routing/fallback/streaming/стоимость/латентность — **вне объёма Этапа 12** (наследует RV-10, с адаптерами).
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -278,7 +301,17 @@ Statically Verified:        12 / 12   (Protocol/registry/factory/capability/resi
 Runtime Verified:            n/a       (Этап 11 полностью offline; реальные адаптеры — RV-10, этапы 12/15/16)
 ```
 
-Ни одно требование Этапов 1–11 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 12 (AI Engine): 13 требований (§R5.1/2/3/6/10, §R2.9, §R2.10, §R9.8, §R3.1) — три статуса:**
+```
+Implemented:                13 / 13
+Statically Verified:        13 / 13   (pipeline/context/budget/selection/structured/rewrite/fallback/
+                                       hooks + engine end-to-end на фейках; подсистема ~99%, engine 100%;
+                                       34 теста; 0 type: ignore)
+Runtime Verified:            n/a       (Этап 12 offline на FakeLLMProvider; живые LLM — RV-11)
+```
+
+Ни одно требование Этапов 1–12 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-10). Этап 11 — offline-полный (real-adapter runtime — RV-10). Блокеров для Этапа 12 нет.
+RV-1…RV-11). Этапы 11–12 — offline-полные (real-provider/LLM runtime — RV-10/RV-11). Блокеров для
+Этапа 13 нет.

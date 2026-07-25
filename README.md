@@ -219,11 +219,33 @@ pytest tests/core/providers tests/llm tests/images tests/telegram tests/services
 > Retry/Timeout/Circuit-Breaker/rate-limit behaviour — are out of scope here and are **Runtime
 > Verification Pending** (RV-10); they arrive with the AI/Image/Telegram engine stages (12/15/16).
 
+## AI Engine (§R5)
+
+The AI Engine in `app/content` is a **provider-agnostic orchestrator** over the Stage-11
+`LLMProvider` protocol — it contains no content rules (persona/style come in as data; quality gates
+plug into a validation seam in Stage 14). The prompt pipeline is modular: independent contributors
+assemble the prompt structure (§R5.3), templates render it (no model knowledge), and the context
+builder pulls few-shot examples (K=3–5, §R5.2) **only** through Memory/Knowledge ports (real adapters
+in Stage 13), budgeted deterministically via a `TokenEstimator` (no tokenizer dependency). Provider
+selection and model routing are **independent** (§R5.10: body→`claude-opus-4-8`, else
+`claude-haiku-4-5`, declarative). Structured output is a separate layer (JSON + Pydantic). Quality
+**rewrite** (`MAX_REWRITES`, §R5.6) is distinct from infra retry (`MAX_RETRIES`); model **fallback**
+(§R2.9) lives only in the engine (the queue never picks the model). Streaming, cost, metrics and
+logging are hooks only. Compose with `app.services.ai.build_ai_engine` — offline on fakes by default.
+
+```bash
+pytest tests/content tests/services/test_ai.py   # offline on FakeLLMProvider
+```
+
+> Generation against **live** LLMs (Anthropic/OpenAI) — real routing/fallback/streaming/cost — is
+> **Runtime Verification Pending** (RV-11), arriving with the real provider adapters. Offline tests
+> cover the full pipeline, selection, structured output, rewrite/fallback and hooks on fakes.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
-11. **Provider abstractions + fakes ✅** → 12. AI Engine → 13. Memory/RAG → 14. Validation →
+11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

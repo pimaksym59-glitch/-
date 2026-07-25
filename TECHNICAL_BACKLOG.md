@@ -73,13 +73,15 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-8 | Scheduler-runtime: `pg_try_advisory_lock`/`unlock`, чтение `schedules`+join channel, реальная материализация в `tasks` через Producer, идемпотентность (двойной тик не создаёт дубль — pre-filter + UNIQUE `dedup_key`), конкуренция N инстансов, `python -m app.scheduler.run` | тела advisory/repo/entrypoint исполнимы только против живого PostgreSQL (§R8.1/§R8.10) | 9 (при PostgreSQL) | P1 | Pending PostgreSQL |
 | RV-9 | API-runtime: readiness-проба к живым PostgreSQL/Redis (`SELECT 1`/`PING`), запуск `uvicorn app.main:app` и обслуживание HTTP, lifespan против настоящих соединений (dispose/aclose), сквозной CORS/gzip «по проводу» | тела probe/lifespan и ASGI-сервер исполнимы только против живых сервисов (§R12.10/§R3.5) | 10 (при PG+Redis) | P1 | Pending PostgreSQL + Redis |
 | RV-10 | Real-provider runtime: адаптеры вендоров (OpenAI/Anthropic/aiogram) + живые API-вызовы; фактическое поведение Retry/Timeout/Circuit-Breaker/rate-limit под нагрузкой; установка/импорт `anthropic/openai/aiogram` на 3.14 | Этап 11 = только абстракции + фейки (offline); реальные адаптеры/seam-политики появляются на этапах 12/15/16 | 12/15/16 (при внешних API) | P1 | Pending внешние API |
+| RV-11 | AI-Engine runtime: генерация против **живых** LLM (Anthropic/OpenAI) — фактический model-routing/fallback/streaming/стоимость/латентность под реальными моделями | Этап 12 = движок offline на `FakeLLMProvider`; реальные модели — с адаптерами (наследует RV-10) | 12 (при живых LLM) | P1 | Pending живые LLM |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **10 Runtime Verification
-Required (RV-1…RV-10)**. Обновлено после Этапа 11: добавлен RV-10 (real-provider runtime, внешние API);
-провайдер-абстракции + фейки — **полностью offline**, покрытие подсистемы ~98% (core-инфра/фейки/
-composition 100%), `mypy --strict` без `type: ignore`. FA-2 закрыт. Ни один пункт не блокирует
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **11 Runtime Verification
+Required (RV-1…RV-11)**. Обновлено после Этапа 12: добавлен RV-11 (AI-Engine против живых LLM);
+AI-движок — **provider-agnostic, полностью offline** на фейках, покрытие подсистемы ~99% (engine 100%),
+`mypy --strict` без `type: ignore`. Правила §R5.4–R5.11 (self-review/дедуп/бандит) — этапы 14/17 через
+validation-seam. Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.
