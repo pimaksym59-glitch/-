@@ -7,7 +7,7 @@ Only the SELECT/claim is here (data access); status transitions belong to the sc
 from __future__ import annotations
 
 import datetime
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 from sqlalchemy import select
 
@@ -30,3 +30,12 @@ class TaskRepository(EntityRepository[Task]):
         )
         result = await self.session.scalars(stmt)
         return result.all()
+
+    async def existing_dedup_keys(self, keys: Collection[str]) -> set[str]:
+        """Subset of ``keys`` already present in ``tasks`` (§R8.10). Read-only; lets the scheduler
+        skip re-materializing slots so a re-scan enqueues nothing. Empty input short-circuits."""
+        if not keys:
+            return set()
+        stmt = select(Task.dedup_key).where(Task.dedup_key.in_(keys), Task.deleted_at.is_(None))
+        result = await self.session.scalars(stmt)
+        return {key for key in result.all() if key is not None}
