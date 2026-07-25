@@ -237,6 +237,31 @@
 
 ---
 
+## Этап 13 — Memory + Knowledge + RAG Foundation (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 106 | §R9.1 уровни памяти (Global/Channel/Persona/Content — scope-данные) | ✅ `memory/types` `MemoryScope`/`MemoryEntry` | ✅ unit | n/a |
+| 107 | §R9.2 channel isolation = hard-filter (везде) | ✅ `rag/filters`+stores | ✅ **тесты «чужой канал отсечён»** | ⏳ (реальный WHERE — RV-12) |
+| 108 | §R9.3 KB ≠ Content Memory (независимые подсистемы) | ✅ `app/rag` vs `app/memory` | ✅ guard; memory⊥knowledge (импорт-проверка) | n/a |
+| 109 | §R9.4 ingestion (chunk→embed→index, прямой вызов) | ✅ `rag/knowledge.ingest_document` | ✅ unit (offline) | ⏳ (реальный store — RV-12) |
+| 110 | §R9.5 semantic chunking (по смыслу, не символам) | ✅ `rag/chunking` (независимый) | ✅ unit (блоки/target/пусто) | n/a |
+| 111 | §R9.6 платформенная размерность эмбеддингов | ✅ через провайдер (config) | ✅ unit | ⏳ (реальная модель — RV-12) |
+| 112 | §R9.7 retrieval + reranking (hard-filters до ранга) | ✅ `retrieval`+`ranking` (раздельно) | ✅ unit (candidates/сорт) | ⏳ (RV-12) |
+| 113 | §R9.8 context assembly ≤ токенов, few-shot K | ✅ `rag/assembly` (отдельно) | ✅ unit (budget/limit) | n/a |
+| 114 | §R9.10 versioning (active-version filter seam) | ✅ `Metadata.active`+filter | ✅ unit | ⏳ (жизненный цикл — RV-12) |
+| 115 | §R9.11 search modes (semantic; keyword/hybrid seam) | ✅ `SemanticStrategy` + strategy-Protocol | ✅ unit; hybrid — seam | ⏳ (keyword/hybrid — RV-12) |
+| 116 | §R9.12 Style Memory (признаки, не тексты) | ✅ `memory/types` `StyleFeatures` | ✅ unit | n/a |
+| 117 | §R9.13 observability (per-query stats) | ✅ `rag/observability` hooks | ✅ вызовы в источниках | n/a |
+| 118 | §R2.10 embedding только через Provider Protocol | ✅ `rag/embedding.ProviderEmbedder` | ✅ фейк offline | ⏳ (реальный embed — RV-12) |
+| 119 | §R5.2 few-shot в порты AI-движка (без изменения движка) | ✅ Memory/Knowledge реализуют порты | ✅ интеграция-тест | n/a |
+| 120 | §R3.1 домен, без БД-сессии/HTTP/бизнес-правил; §R3.8 расширяемость | ✅ `app/memory`/`app/rag` | ✅ guard зелёный | n/a |
+
+> **Runtime Verification Pending (RV-12):** реальные pgvector-store'ы, живые embedding-вызовы,
+> semantic/keyword/hybrid-поиск + reranking под живыми PostgreSQL+embedding-API — **вне объёма Этапа 13**.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -310,8 +335,17 @@ Statically Verified:        13 / 13   (pipeline/context/budget/selection/structu
 Runtime Verified:            n/a       (Этап 12 offline на FakeLLMProvider; живые LLM — RV-11)
 ```
 
-Ни одно требование Этапов 1–12 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 13 (Memory + Knowledge + RAG): 15 требований (§R9.1–R9.13, §R2.10, §R5.2, §R3.1/3.8) — три статуса:**
+```
+Implemented:                15 / 15
+Statically Verified:        15 / 15   (types/similarity/embedding/chunking/filters/stores/retrieval/
+                                       ranking/assembly/knowledge/memory + composition; подсистема ~99%;
+                                       50 тестов; 0 type: ignore; memory ⊥ knowledge)
+Runtime Verified:            n/a       (Этап 13 offline на фейках+FakeEmbeddingProvider; pgvector/поиск — RV-12)
+```
+
+Ни одно требование Этапов 1–13 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-11). Этапы 11–12 — offline-полные (real-provider/LLM runtime — RV-10/RV-11). Блокеров для
-Этапа 13 нет.
+RV-1…RV-12). Этапы 11–13 — offline-полные (real-provider/LLM/RAG runtime — RV-10/RV-11/RV-12). Блокеров
+для Этапа 14 нет.

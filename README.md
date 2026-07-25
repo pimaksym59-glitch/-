@@ -241,11 +241,36 @@ pytest tests/content tests/services/test_ai.py   # offline on FakeLLMProvider
 > **Runtime Verification Pending** (RV-11), arriving with the real provider adapters. Offline tests
 > cover the full pipeline, selection, structured output, rewrite/fallback and hooks on fakes.
 
+## Memory / Knowledge / RAG (§R9)
+
+Two **independent** subsystems over a shared, **storage-agnostic** retrieval kernel:
+
+- **`app/rag`** — the neutral kernel (immutable DTOs, `Similarity`, embedding via the Stage-11
+  `EmbeddingProvider`, an independent `Chunker`, `VectorStore`/`DocumentStore` **Protocols** — no
+  pgvector/FAISS/Qdrant, retrieval, ranking, assembly, cache/observability seams, deterministic
+  fakes) **and** the Knowledge Base (ingestion §R9.4, `KnowledgeContextSource`).
+- **`app/memory`** — the Memory subsystem (levels §R9.1, Style Memory features §R9.12,
+  `MemoryContextSource`). It reuses the kernel but **never imports Knowledge** (and vice-versa).
+
+Retrieval only finds candidates; ranking only sorts them; assembly only packs the ranked results —
+each is a separate, swappable stage (§R9.7/§R9.8). Every query is channel-isolated by a hard filter
+(§R9.2). Keyword/hybrid search (RRF), caching, metrics and logging are extension points. The Stage-12
+AI Engine is unchanged — it consumes the `MemoryContextSource`/`KnowledgeContextSource` ports, wired
+in `app.services.rag`.
+
+```bash
+pytest tests/rag tests/memory tests/services/test_rag.py   # offline on fakes + FakeEmbeddingProvider
+```
+
+> Real pgvector-backed stores, live embedding calls and semantic/keyword/hybrid search + reranking
+> are **Runtime Verification Pending** (RV-12). Offline tests cover the kernel, chunking, filters
+> (channel isolation), retrieval/ranking/assembly, ingestion and both context sources on fakes.
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
-11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. Memory/RAG → 14. Validation →
+11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

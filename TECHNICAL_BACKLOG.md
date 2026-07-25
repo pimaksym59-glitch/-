@@ -74,14 +74,15 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-9 | API-runtime: readiness-проба к живым PostgreSQL/Redis (`SELECT 1`/`PING`), запуск `uvicorn app.main:app` и обслуживание HTTP, lifespan против настоящих соединений (dispose/aclose), сквозной CORS/gzip «по проводу» | тела probe/lifespan и ASGI-сервер исполнимы только против живых сервисов (§R12.10/§R3.5) | 10 (при PG+Redis) | P1 | Pending PostgreSQL + Redis |
 | RV-10 | Real-provider runtime: адаптеры вендоров (OpenAI/Anthropic/aiogram) + живые API-вызовы; фактическое поведение Retry/Timeout/Circuit-Breaker/rate-limit под нагрузкой; установка/импорт `anthropic/openai/aiogram` на 3.14 | Этап 11 = только абстракции + фейки (offline); реальные адаптеры/seam-политики появляются на этапах 12/15/16 | 12/15/16 (при внешних API) | P1 | Pending внешние API |
 | RV-11 | AI-Engine runtime: генерация против **живых** LLM (Anthropic/OpenAI) — фактический model-routing/fallback/streaming/стоимость/латентность под реальными моделями | Этап 12 = движок offline на `FakeLLMProvider`; реальные модели — с адаптерами (наследует RV-10) | 12 (при живых LLM) | P1 | Pending живые LLM |
+| RV-12 | RAG runtime: реальные **pgvector**-store'ы, живые embedding-вызовы, фактический semantic/keyword/hybrid-поиск + reranking под живыми PostgreSQL + embedding-API; keyword/hybrid(RRF)/cache/versioning/retention — расширения seam'ов | Этап 13 = kernel offline на фейках + `FakeEmbeddingProvider`; реальные бэкенды/поиск — с адаптерами | 13 (при PG+embeddings) | P1 | Pending PG + embeddings |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **11 Runtime Verification
-Required (RV-1…RV-11)**. Обновлено после Этапа 12: добавлен RV-11 (AI-Engine против живых LLM);
-AI-движок — **provider-agnostic, полностью offline** на фейках, покрытие подсистемы ~99% (engine 100%),
-`mypy --strict` без `type: ignore`. Правила §R5.4–R5.11 (self-review/дедуп/бандит) — этапы 14/17 через
-validation-seam. Ни один пункт не блокирует
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **12 Runtime Verification
+Required (RV-1…RV-12)**. Обновлено после Этапа 13: добавлен RV-12 (RAG против живых pgvector/embeddings);
+Memory/RAG-фундамент — **storage-agnostic, полностью offline** на фейках, покрытие подсистемы ~99%,
+`mypy --strict` без `type: ignore`. Keyword/hybrid/reranking/cache/versioning/retention — seam'ы/
+расширения (RV-12). Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.
