@@ -191,6 +191,29 @@
 
 ---
 
+## Этап 11 — Provider Abstractions + Fakes (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 81 | §R2.10 провайдер-абстракции с фейками; система offline | ✅ `core/providers` + доменные фейки | ✅ фейки конформны Protocol; подсистема ~98% | n/a (offline) |
+| 82 | §R2.10 `get_*_provider(settings)` — real-if-key-else-fake, без исключений при отсутствии ключа | ✅ `services/providers` + `factory` | ✅ тесты выбора fake/real; missing-key не бросает | ⏳ (реальный клиент — RV-10) |
+| 83 | §R3.8 расширяемость: новый провайдер = адаптер + регистрация (реестр) | ✅ `registry` (typed, thread-safe) | ✅ тесты register/get/unknown/concurrency | n/a |
+| 84 | Factory не знает конкретных классов (только реестр + config) | ✅ `factory.py` | ✅ тесты (impl-agnostic) | n/a |
+| 85 | Единый Protocol + health как часть контракта (§R12.10, без сети) | ✅ `base.Provider` + `health` | ✅ тесты фейков (healthy, без I/O) | n/a |
+| 86 | §R7.5 единый набор ошибок; классификация совместима с retry | ✅ `errors.py` (subclass workers) | ✅ `workers.retry.classify` на провайдер-ошибках | n/a |
+| 87 | Capability discovery — декларативная (без проверок по классу) | ✅ `capabilities.py` | ✅ тесты supports/require | n/a |
+| 88 | Retry/Timeout/Circuit-Breaker — только точки интеграции | ✅ `resilience.py` (seams, no-op) | ✅ тесты passthrough/timeout/breaker | ⏳ (реальные политики — RV-10) |
+| 89 | Metrics/Logging — только hooks (без реальных метрик) | ✅ `observability.py` (reuse workers) | ✅ тест no-op defaults | n/a |
+| 90 | §R2.8/§R7.6 rate-limit — точка интеграции провайдеров | ✅ seam (FA-5) | ✅ (вызов — на адаптерных этапах) | ⏳ (реальный лимит — RV-10) |
+| 91 | DI через существующую систему (переопределяемо) | ✅ `api/deps.get_provider_factory` | ✅ тест override (ASGI) | n/a |
+| 92 | §R3.1 generic-инфра не импортирует домен; адаптеры в домене | ✅ `core/providers` generic | ✅ `test_layering` зелёный | n/a |
+
+> **Runtime Verification Pending (RV-10):** реальные адаптеры вендоров (OpenAI/Anthropic/aiogram),
+> живые API-вызовы и фактическое поведение Retry/Timeout/CB/rate-limit — **вне объёма Этапа 11**;
+> появляются на этапах 12/15/16.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -246,7 +269,16 @@ Statically Verified:        11 / 11   (factory/errors/middleware/health/paginati
 Runtime Verified:            0 / 11   (Runtime Verification Pending — нет живых PG/Redis/ASGI, RV-9)
 ```
 
-Ни одно требование Этапов 1–10 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 11 (Providers): 12 требований (§R2.10, §R3.8, §R3.1, §R7.5, §R2.8/R7.6, §R12.10) — три статуса:**
+```
+Implemented:                12 / 12
+Statically Verified:        12 / 12   (Protocol/registry/factory/capability/resilience/фейки offline;
+                                       подсистема ~98%, core-инфра/фейки/composition 100%; 43 теста;
+                                       0 type: ignore)
+Runtime Verified:            n/a       (Этап 11 полностью offline; реальные адаптеры — RV-10, этапы 12/15/16)
+```
+
+Ни одно требование Этапов 1–11 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-9). Блокеров для Этапа 11 нет.
+RV-1…RV-10). Этап 11 — offline-полный (real-adapter runtime — RV-10). Блокеров для Этапа 12 нет.

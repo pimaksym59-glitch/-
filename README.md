@@ -197,11 +197,33 @@ RUN_INTEGRATION=1 pytest            # run API integration tests (readiness again
 > **Runtime Verification Pending** (RV-9). Offline tests cover the factory, error mapping, middleware,
 > pagination, OpenAPI (no warnings) and health logic (fake probes) via an ASGI transport.
 
+## Providers (§R2.10/§R3.8)
+
+Provider abstractions let the whole system run **offline** with fakes. Generic infrastructure lives in
+`app/core/providers` (imports no domain package): a base `Provider` protocol (kind, declarative
+`capabilities`, non-networking `health`), a typed thread-safe `ProviderRegistry`, an implementation-
+agnostic `ProviderFactory`, a unified error model (`ProviderError` and friends — classified so the
+existing retry strategy handles them, §R7.5), and **integration seams** for timeout / circuit-breaker
+/ metrics / logging (no policy of their own; retries stay with the Executor). Per-kind protocols and
+fakes live in the domain packages (`app/llm`, `app/images`, `app/telegram`); composition is
+`app/services/providers.py`, exposing `get_*_provider(settings)` (§R2.10): a real client when its API
+key is present **and** a real adapter is registered, otherwise the deterministic fake — a missing key
+never raises. Fakes are deterministic (no randomness) and offline: templated LLM text, hash-derived
+unit embedding vectors, solid-colour PNGs (Pillow), recorded Telegram sends.
+
+```bash
+pytest tests/core/providers tests/llm tests/images tests/telegram tests/services   # offline
+```
+
+> Real vendor adapters (OpenAI/Anthropic/aiogram) and live API calls — including actual
+> Retry/Timeout/Circuit-Breaker/rate-limit behaviour — are out of scope here and are **Runtime
+> Verification Pending** (RV-10); they arrive with the AI/Image/Telegram engine stages (12/15/16).
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
-11. Provider abstractions + fakes → 12. AI Engine → 13. Memory/RAG → 14. Validation →
+11. **Provider abstractions + fakes ✅** → 12. AI Engine → 13. Memory/RAG → 14. Validation →
 15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

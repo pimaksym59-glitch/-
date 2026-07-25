@@ -19,10 +19,10 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | ID | Описание | Причина | Этап | Приоритет | Статус |
 |---|---|---|---|---|---|
 | FA-1 | Слой БД(канал)-оверрайда как высший business-config источник (§R3.4) | сейчас только зарезервировано место | 6–7 | P1 | Deferred |
-| FA-2 | Выбор фейка провайдера при `secret is None` (§R2.10) | контракт задекларирован, не реализован (F6) | 11 | P1 | Deferred |
+| FA-2 | Выбор фейка провайдера при `secret is None` (§R2.10) | контракт задекларирован, не реализован (F6) | 11 | P1 | **✅ Implemented (Stage 11: `ProviderFactory` — real-if-key-else-fake; отсутствие ключа не бросает исключений)** |
 | FA-3 | Правило приоритета `telegram_bot_token` (платформенный) vs per-channel `bot_token_ref` (БД) | конфликт двух источников токена (F5) | 7 / 16 | P2 | Deferred |
 | FA-4 | Структурированный JSON-логгер + маскирование секретов (§R12.9) | конфиг хранит только `log_level`; логгера нет | этап логирования | P2 | Deferred |
-| FA-5 | Распределённый rate-limiter (Redis token-bucket, §R7.6/§R8.9) | in-process семафор не масштабируется на N воркеров | 5 (код) / 8/12 (интеграция) | P1 | **Implemented in code (Stage 5, `app/core/redis/rate_limiter.py`)**; runtime — RV-6; интеграция в scheduler/telegram — этапы 8/16 |
+| FA-5 | Распределённый rate-limiter (Redis token-bucket, §R7.6/§R8.9) | in-process семафор не масштабируется на N воркеров | 5 (код) / 8/12 (интеграция) | P1 | **Implemented in code (Stage 5, `app/core/redis/rate_limiter.py`)**; runtime — RV-6; **точка интеграции провайдеров — Stage 11 (`resilience.py` seam)**; фактический вызов в telegram/llm — этапы 16/12 |
 
 ## 3. ADR Candidates (потенциально требуют нового ADR)
 
@@ -72,12 +72,14 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-7 | Queue-runtime: `FOR UPDATE SKIP LOCKED` claim, персистентность статусов, enqueue/dequeue, idempotency, конкуренция N воркеров, `python -m app.workers.run` | тела dispatcher/producer и entrypoint исполнимы только против PG+Redis (§R2.2/§R8) | 8 (при PG+Redis) | P1 | Pending PostgreSQL + Redis |
 | RV-8 | Scheduler-runtime: `pg_try_advisory_lock`/`unlock`, чтение `schedules`+join channel, реальная материализация в `tasks` через Producer, идемпотентность (двойной тик не создаёт дубль — pre-filter + UNIQUE `dedup_key`), конкуренция N инстансов, `python -m app.scheduler.run` | тела advisory/repo/entrypoint исполнимы только против живого PostgreSQL (§R8.1/§R8.10) | 9 (при PostgreSQL) | P1 | Pending PostgreSQL |
 | RV-9 | API-runtime: readiness-проба к живым PostgreSQL/Redis (`SELECT 1`/`PING`), запуск `uvicorn app.main:app` и обслуживание HTTP, lifespan против настоящих соединений (dispose/aclose), сквозной CORS/gzip «по проводу» | тела probe/lifespan и ASGI-сервер исполнимы только против живых сервисов (§R12.10/§R3.5) | 10 (при PG+Redis) | P1 | Pending PostgreSQL + Redis |
+| RV-10 | Real-provider runtime: адаптеры вендоров (OpenAI/Anthropic/aiogram) + живые API-вызовы; фактическое поведение Retry/Timeout/Circuit-Breaker/rate-limit под нагрузкой; установка/импорт `anthropic/openai/aiogram` на 3.14 | Этап 11 = только абстракции + фейки (offline); реальные адаптеры/seam-политики появляются на этапах 12/15/16 | 12/15/16 (при внешних API) | P1 | Pending внешние API |
 
 ---
 
-**Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-4 JSON-логгер — точка интеграции в
-Stage-10 middleware; FA-5 **implemented in code**) · 4 ADR Candidates (ADR-C2 **closed**) · 5
-Operational Risks · 6 Testing Gaps · **9 Runtime Verification Required (RV-1…RV-9)**. Обновлено после
-Этапа 10: добавлен RV-9 (API-runtime, живые PG+Redis/ASGI); HTTP-фундамент — offline-покрытие API
-94–100%, `mypy --strict` без `type: ignore`. Auth/RBAC — точки расширения (auth-этап), не долг. Ни один
-пункт не блокирует следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.
+**Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
+JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **10 Runtime Verification
+Required (RV-1…RV-10)**. Обновлено после Этапа 11: добавлен RV-10 (real-provider runtime, внешние API);
+провайдер-абстракции + фейки — **полностью offline**, покрытие подсистемы ~98% (core-инфра/фейки/
+composition 100%), `mypy --strict` без `type: ignore`. FA-2 закрыт. Ни один пункт не блокирует
+следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.
