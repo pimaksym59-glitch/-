@@ -5,13 +5,14 @@ assertions. No business logic (no rate-limit handling here — that is the real 
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from app.core.providers.base import Capability, ProviderKind
 from app.core.providers.health import ProviderHealth
 from app.core.providers.registry import FAKE_NAME
 from app.telegram.base import SendResult
+from app.telegram.source import RawUpdate
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,3 +60,57 @@ class FakeTelegramProvider:
     def _new_id(self) -> int:
         self._next_id += 1
         return self._next_id
+
+
+class FakeUpdateSource:
+    """Yields fixed batches of raw updates in order, then empty. Deterministic (owner req 19)."""
+
+    def __init__(self, batches: Sequence[Sequence[RawUpdate]]) -> None:
+        self._batches = [list(batch) for batch in batches]
+        self._index = 0
+
+    async def fetch(self) -> list[RawUpdate]:
+        if self._index >= len(self._batches):
+            return []
+        batch = self._batches[self._index]
+        self._index += 1
+        return list(batch)
+
+
+class FakeStateStore:
+    """Deterministic in-memory state store."""
+
+    def __init__(self) -> None:
+        self._data: dict[str, dict[str, str]] = {}
+
+    async def get(self, key: str) -> Mapping[str, str]:
+        return dict(self._data.get(key, {}))
+
+    async def set(self, key: str, data: Mapping[str, str]) -> None:
+        self._data[key] = dict(data)
+
+    async def clear(self, key: str) -> None:
+        self._data.pop(key, None)
+
+
+class FakeRateLimiter:
+    """Allows by default; can be configured to always deny. Deterministic."""
+
+    def __init__(self, *, allow: bool = True) -> None:
+        self._allow = allow
+
+    async def acquire(self, key: str) -> bool:
+        return self._allow
+
+
+class FakeIdempotencyGuard:
+    """In-memory dedup set. Deterministic."""
+
+    def __init__(self) -> None:
+        self._seen: set[str] = set()
+
+    async def seen(self, dedup_key: str) -> bool:
+        return dedup_key in self._seen
+
+    async def mark(self, dedup_key: str) -> None:
+        self._seen.add(dedup_key)
