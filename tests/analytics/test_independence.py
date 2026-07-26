@@ -1,0 +1,72 @@
+"""Architectural-invariant guard for the Analytics subsystem (owner reqs 1, 2, 21).
+
+Asserts that ``app/analytics`` is a fully independent, stdlib-only domain: it must not import the
+other engines/subsystems, the queue/provider infrastructure, the web/service/persistence layers, or
+any external SDK. Reinforces ``tests/test_layering.py`` at the subsystem level.
+"""
+
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+ANALYTICS_ROOT = Path(__file__).resolve().parent.parent.parent / "app" / "analytics"
+
+FORBIDDEN_PREFIXES: tuple[str, ...] = (
+    "app.content",
+    "app.validators",
+    "app.images",
+    "app.telegram",
+    "app.memory",
+    "app.rag",
+    "app.workers",
+    "app.core.providers",
+    "app.api",
+    "app.services",
+    "app.db",
+    "app.repositories",
+    "app.models",
+    "app.scheduler",
+    "sqlalchemy",
+    "fastapi",
+    "aiogram",
+    "opentelemetry",
+    "prometheus_client",
+    "prometheus",
+)
+
+
+def _imported_modules(tree: ast.Module) -> list[str]:
+    names: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module is not None:
+            names.append(node.module)
+    return names
+
+
+def _is_forbidden(module: str) -> bool:
+    return any(module == p or module.startswith(p + ".") for p in FORBIDDEN_PREFIXES)
+
+
+def test_analytics_domain_has_no_forbidden_imports() -> None:
+    violations: list[str] = []
+    for py in sorted(ANALYTICS_ROOT.rglob("*.py")):
+        tree = ast.parse(py.read_text(encoding="utf-8"))
+        for module in _imported_modules(tree):
+            if _is_forbidden(module):
+                violations.append(f"{py.name} imports forbidden '{module}'")
+    assert not violations, "Analytics independence violations:\n" + "\n".join(violations)
+
+
+def test_analytics_imports_only_stdlib_or_self() -> None:
+    """Every ``app.*`` import inside the domain must stay within ``app.analytics``."""
+
+    violations: list[str] = []
+    for py in sorted(ANALYTICS_ROOT.rglob("*.py")):
+        tree = ast.parse(py.read_text(encoding="utf-8"))
+        for module in _imported_modules(tree):
+            if module.startswith("app.") and not module.startswith("app.analytics"):
+                violations.append(f"{py.name} imports non-analytics app module '{module}'")
+    assert not violations, "Analytics cross-package imports:\n" + "\n".join(violations)
