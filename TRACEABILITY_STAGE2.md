@@ -453,8 +453,23 @@ Runtime Verified:            n/a       (Этап 17 offline на детерми�
                                        персистентность, engagement, OTel/Prometheus/внешние — RV-16)
 ```
 
-Ни одно требование Этапов 1–17 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 18 (Admin Panel): 24 требования владельца (§R10.1–R10.9, §R3.1/3.8, RBAC-матрица API_SPEC) —
+три статуса:**
+```
+Implemented:                24 / 24
+Statically Verified:        24 / 24   (ports/rbac/types/exceptions/dto/mapping/observability/authentication/
+                                       authorization/sessions/csrf/pagination/filtering/search/audit/
+                                       analytics_view/metrics_dashboard/jobs/health_dashboard/error_reporting/
+                                       feature_flags/users/channels/prompts/providers/configuration/ai_studio/
+                                       seams/service + композиция; подсистема ~99%; 45 тестов; 0 type: ignore;
+                                       admin ⟂ fastapi/starlette/content/validators/images/telegram/analytics/
+                                       memory/rag/workers/providers; authn ⟂ authz ⟂ rbac)
+Runtime Verified:            n/a       (Этап 18 offline на детерминированных фейках; Web UI/persist/queue/
+                                       SSO/MFA/live-integrations — RV-17)
+```
+
+Ни одно требование Этапов 1–18 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-16). Этапы 11–17 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram/Analytics
-runtime — RV-10…RV-16). Блокеров для Этапа 18 нет.
+RV-1…RV-17). Этапы 11–18 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram/Analytics/Admin
+runtime — RV-10…RV-17). Блокеров для Этапа 19 нет.

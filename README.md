@@ -355,11 +355,38 @@ pytest tests/analytics tests/services/test_analytics.py   # offline, determinist
 > event/metrics/audit flows, sampling/retention strategies, tracing hooks, observability records and the
 > export seams on fakes (subsystem ~99%).
 
+## Admin Panel & Control Center (§R10)
+
+The Admin subsystem in `app/admin` is a **fully independent domain** — it imports no web framework
+(FastAPI/Starlette) and no other subsystem (AI/Validation/Image/Telegram/Analytics/Memory/RAG/Workers/
+Providers); every integration crosses a public Protocol. The **Admin API** is a UI-agnostic *delegation*
+facade (`AdminApi`) with no business logic (no god-object) and no HTTP dependency. **Authentication**,
+**Authorization** and **RBAC** are three separate modules: `PasswordAuthenticator` (password/MFA via ports,
+secrets write-only §R10.4), `RbacAuthorization` (decisions only through the RBAC model), and an immutable
+5-role `Role`/`Permission` matrix (backend RBAC §R10.5). **Sessions** and **CSRF** are separate components;
+independent management services cover **User/Channel/Prompt(versioned)/Provider/Configuration(versioned)**,
+each RBAC-gated with secret masking in the dedicated DTO-mapping layer. Dashboards (**Health/Metrics/
+Analytics/Jobs/Errors**) read through public ports only — analytics honours §R10.3 gating, panel actions go
+through the queue as `TaskIntent` (§R10.1). **Feature flags**, **pagination/filtering/search** are
+independent components; **metrics/logging are hooks only**; **AI Studio** is isolated (dry-run only, no
+memory-write/publish §R10.9). Web UI (HTMX/SPA) and external SSO (OAuth/OIDC/LDAP/SAML/MFA) are **declared
+seams, not implemented**. Compose with `app.services.admin.build_admin_api`, which bridges Analytics'
+public audit/metrics interfaces via adapters.
+
+```bash
+pytest tests/admin tests/services/test_admin.py   # offline, deterministic fakes
+```
+
+> The real Web UI (HTMX/HTTP), browser flows, cookie sessions / CSRF over the wire, real password hasher /
+> MFA / external SSO, persistence to PostgreSQL, panel actions through the queue and live Analytics/
+> Providers/AI-Studio runs are **Runtime Verification Pending** (RV-17). Offline tests cover RBAC, auth,
+> sessions, CSRF, the management services, dashboards, feature flags and the seams on fakes (subsystem ~99%).
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
-15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. Admin Panel → 19. Tests → 20. Docs.
+15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. **Admin Panel ✅** → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

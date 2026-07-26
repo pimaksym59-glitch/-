@@ -1,10 +1,10 @@
 # PROJECT HANDOFF — AI Telegram Automation Platform
 
-**Дата:** 2026-07-26 · **Ветка:** `master` · **HEAD:** `01d2a49` · **Последний тег:**
-`stage-16-telegram-engine` · **Версия:** 0.1.0 · **ОС:** Windows 11 · shell PowerShell + Git-Bash ·
-Рабочая папка: `C:\Users\Fupxrx\Desktop\projects` · venv: `.venv` (Python **3.14.6**). Инструменты
-запускать через `.venv/Scripts/`: `.venv/Scripts/ruff.exe check .`, `.venv/Scripts/python.exe -m mypy`,
-`.venv/Scripts/pytest.exe -q`. Рабочее дерево **чистое**. Файлов: **201** `.py` в `app/`, **87** в `tests/`.
+**Дата:** 2026-07-27 · **Ветка:** `master` · **Последний тег:** `stage-18-admin-panel` · **Версия:** 0.1.0
+· **ОС:** Windows 11 · shell PowerShell + Git-Bash · Рабочая папка: `C:\Users\Fupxrx\Desktop\projects` ·
+venv: `.venv` (Python **3.14.6**). Инструменты запускать через `.venv/Scripts/`:
+`.venv/Scripts/ruff.exe check .`, `.venv/Scripts/python.exe -m mypy`, `.venv/Scripts/pytest.exe -q`.
+Рабочее дерево **чистое**. Файлов: **256** `.py` в `app/`, **97** в `tests/`.
 
 ---
 
@@ -128,24 +128,24 @@ projects/
 | 14 Validation | `stage-14-validation` | `app/validators` (**stdlib-only**): rule engine/registry/gates/decision; dedup/humanization/persona/policy; адаптер `OutputValidator` в services |
 | 15 Image Engine | `stage-15-image-engine` | `app/images/*`: prompt/style/enhancement/selection/aspect/size/safety/validation-port/postprocess(thumbnail+phash)/regen; на `FakeImageProvider`; 100% |
 | 16 Telegram Engine | `stage-16-telegram-engine` | `app/telegram/*` (**no aiogram**): mapping/source(webhook/polling)/router/registry/handlers/dispatcher/middleware/state/formatter/attachments/ratelimit/idempotency/retry/recovery/publishing; на `FakeTelegramProvider`; ~99% |
+| 17 Analytics & Observability | `stage-17-analytics` | `app/analytics/*` (**stdlib-only**): event/taxonomy/registry/collector/dispatcher/sampling/pipeline + metrics(counters/timers/histograms/aggregation) + audit-pipeline + correlation + tracing/observability hooks + export-seam'ы + retention; на детерм. фейках; ~99% |
+| 18 Admin Panel | `stage-18-admin-panel` | `app/admin/*` (**независим, без fastapi**): authn⟂authz⟂RBAC + sessions/CSRF + management(users/channels/prompts/providers/config) + dashboards(health/metrics/analytics/jobs/errors) + feature-flags + pagination/filtering/search + DTO-mapping + AI-Studio + Web UI/SSO seam'ы; на детерм. фейках; ~99% |
 
 **Toolchain на HEAD:** ruff — All checks passed; `mypy --strict` — Success (286 files); pytest —
-**337 passed, 6 skipped** (все skipped = gated integration за `RUN_INTEGRATION=1` + сервисы). `0 type: ignore`
+**422 passed, 6 skipped** (все skipped = gated integration за `RUN_INTEGRATION=1` + сервисы). `0 type: ignore`
 во всём коде.
 
 ## 6. Что находится в работе
 
-**Ничего в процессе.** Этап 16 завершён, принят и закоммичен; рабочее дерево чистое. Следующий — Этап 17
-(Analytics), **план ещё не создан** (ждёт разрешения владельца начать).
+**Ничего в процессе.** Этап 18 завершён, принят и закоммичен; рабочее дерево чистое. Следующий — Этап 19
+(Tests), **план ещё не создан** (ждёт разрешения владельца начать).
 
 ## 7. Что осталось сделать (по §R13.1)
 
-17. **Analytics** (§R11): надёжная внутренняя аналитика (cost/quality/system/content-diversity), engagement
-    — **gated** (§R7.3/R10.3, недоступно без MTProto), self-learning bandit (epsilon-greedy/Thompson) →
-18. **Admin Panel** (§R10, HTMX + `app/api` эндпоинты по `API_SPEC.md`) →
 19. **Tests** (сквозные/интеграционные, §R13.2 E2E) →
 20. **Docs** (+ DevOps §R12.13: CI/CD, backup/restore, monitoring/alerting, secret manager, uv.lock).
-Плюс наполнение доменных стадий реальными адаптерами (RV-10..RV-15) при появлении сервисов.
+Плюс наполнение доменных стадий реальными адаптерами (RV-10..RV-17) при появлении сервисов. Аналитические
+вычисления §R11.4–R11.8 (bandit/experiments/report/forecast) — поверх фундамента Этапа 17.
 
 ## 8. Все TODO (`TECHNICAL_BACKLOG.md` — живой)
 
@@ -162,7 +162,7 @@ projects/
 - **Testing Gaps:** TG-1 тест `get_settings()`; TG-2 ассерт §R4.6 embedding-констант; TG-3 полный ассерт
   §Appendix B (проверены 4/10); TG-4 ASCII-fallback `_marks()`; TG-5 doctor «всё сконфигурировано»; TG-6
   тела async-запросов репозиториев — только integration.
-- **Runtime Verification Required (RV-1…RV-15)** — закрываются только при живых сервисах, **не** засчитаны:
+- **Runtime Verification Required (RV-1…RV-17)** — закрываются только при живых сервисах, **не** засчитаны:
   RV-1 docker build + полный стек на 3.13; RV-2 нативная валидация docker/caddy в контейнере; RV-3
   §R12.3-5/§R4.1 runtime; RV-4 `alembic upgrade head`; RV-5 CRUD+pgvector/HNSW/optimistic-lock; RV-6 Redis
   I/O/Lua/pub-sub; RV-7 queue-runtime (SKIP LOCKED/enqueue/конкуренция); RV-8 scheduler-runtime (advisory/
@@ -170,7 +170,9 @@ projects/
   real-provider adapters (OpenAI/Anthropic/aiogram) + установка/импорт на 3.14; RV-11 AI-Engine против живых
   LLM; RV-12 RAG против живых pgvector/embeddings + keyword/hybrid/reranking; RV-13 Validation LLM-judge +
   vector-dedup; RV-14 Image против живых провайдеров + identity/CLIP; RV-15 Telegram против живого Bot API/
-  webhook/polling + distributed rate-limit + at-least-once.
+  webhook/polling + distributed rate-limit + at-least-once; RV-16 Analytics экспорт telemetry (OTel/
+  Prometheus)/персистентность/engagement/внешние бэкенды; RV-17 Admin Web UI (HTMX/HTTP)/браузер/cookie-
+  сессия/CSRF по сети/хэшер-паролей/MFA/SSO/персистентность/действия через очередь.
 
 ## 9. Известные баги
 
@@ -242,45 +244,43 @@ redis:7-alpine, caddy:2-alpine. Floor Python `>=3.13` (dev 3.14, прод-обр
 
 ## 13. Последние изменения
 
-- Завершён и **принят Этап 16 (Telegram Engine)** — тег `stage-16-telegram-engine` `01d2a49` (3 коммита:
-  `6d12cf1` feat / `075322d` test / `01d2a49` docs). Library-agnostic транспорт (no aiogram) поверх
-  `TelegramProvider` Этапа 11; входящий framework (mapping / source webhook·polling / router / registry /
-  handlers / dispatcher / middleware / state) + исходящая публикация (modes / formatter / attachments /
-  ratelimit-port / idempotency-слой / recovery-pipeline / retry-reuse). Backlog +RV-15; traceability +блок
-  Этапа 16 (13/13).
-- Ранее приняты Этапы 12 (AI Engine), 13 (Memory/RAG), 14 (Validation), 15 (Image Engine) — все offline,
-  provider-agnostic, независимые, покрытие подсистем 97–100%, `0 type: ignore`.
-- Дерево чистое; HEAD `01d2a49`; последний тег `stage-16-telegram-engine`.
+- Завершён и **принят Этап 18 (Admin Panel)** — тег `stage-18-admin-panel` (3 коммита feat/test/docs).
+  Независимая доменная подсистема `app/admin/` (без fastapi/starlette, без импорта других подсистем):
+  authentication ⟂ authorization ⟂ RBAC (immutable-модель, 5 ролей), sessions/CSRF отдельными компонентами,
+  независимые management-сервисы (User/Channel/Prompt/Provider/Config) с RBAC-gate и маскированием секретов,
+  dashboards (health/metrics/analytics/jobs/errors) через порты, feature flags, независимые pagination/
+  filtering/search, отдельный DTO-mapping, hooks, изолированный AI Studio (§R10.9), Web UI/SSO/MFA/rollout —
+  seam'ы. Composition `app/services/admin.py` (delegation-фасад + адаптеры к публичным интерфейсам Analytics).
+  Backlog +RV-17; traceability +блок Этапа 18 (24/24).
+- Ранее принят Этап 17 (Analytics & Observability) — тег `stage-17-analytics`: независимая stdlib-only
+  подсистема (event/metrics/audit/tracing/export-seam'ы), покрытие ~99%.
+- Дерево чистое; последний тег `stage-18-admin-panel`.
 
 ## 14. Следующий шаг
 
-**Этап 17 — Analytics** (§R13.1 шаг 17, §R11). Владелец ещё **не** дал разрешения начать. Порядок действий
+**Этап 19 — Tests** (§R13.1 шаг 19, §R13.2). Владелец ещё **не** дал разрешения начать. Порядок действий
 (строго по staged delivery):
 
-1. Дождаться от владельца «**Разрешаю начать Этап 17**» (+ возможные требования к плану).
-2. Подготовить **только** `TASK_BREAKDOWN_STAGE17.md` (последовательность задач, создаваемые файлы,
-   компоненты Analytics, критерии, риски, реализуемые требования MASTER_SPEC + разделы «Публичные контракты»/
+1. Дождаться от владельца «**Разрешаю начать Этап 19**» (+ возможные требования к плану).
+2. Подготовить **только** `TASK_BREAKDOWN_STAGE19.md` (последовательность задач, создаваемые файлы, охват
+   тестов, критерии, риски, реализуемые требования MASTER_SPEC + разделы «Публичные контракты» (если есть)/
    «Матрица зависимостей»/«Архитектурная проверка (план)»). **СТОП на утверждение.**
-3. Ключевой контекст Analytics (§R11): **надёжная внутренняя аналитика** (Cost/Quality/System/Content-
-   diversity) не зависит от Telegram; **engagement (views/ER/CTR) — gated** (§R7.3/R10.3: недоступно без
-   MTProto-адаптера, показывать `availability: gated`, не выдумывать); `analytics_snapshots` — **временной
-   ряд** (§R4.8, не одна строка на пост); self-learning=**bandit** (epsilon-greedy/Thompson с полом
-   исследования `EPSILON_MIN`, §R5.11/§R11); сигнал обучения без MTProto — рост подписчиков
-   (`getChatMemberCount`), клики (§R11.3). Разместить в `app/analytics/` (домен, пустой пакет); composition
-   в `app/services/`. Ожидаемо: provider-agnostic, offline на фейках, реальные метрики/MTProto — RV-16.
+3. Ключевой контекст Tests (§R13.2): сквозные/интеграционные E2E-сценарии поверх готовых offline-подсистем;
+   gated-интеграция (реальные PG/Redis/API) за `RUN_INTEGRATION=1` — не засчитывать без сервисов (RV);
+   не менять архитектуру и существующие подсистемы; переиспользовать фейки/порты.
 4. После утверждения — реализация → gate (ruff/mypy/pytest) → 3 отчёта + обновить живые доки + README →
-   3 коммита + тег `stage-17-analytics` → **СТОП на приёмку**.
+   3 коммита + тег `stage-19-tests` → **СТОП на приёмку**.
 
 ---
 
 ## Быстрый старт для нового чата
 
 1. **Прочитать:** `MASTER_SPEC.md` (SoT), `TECHNICAL_BACKLOG.md`, `TRACEABILITY_STAGE2.md`, `HANDOFF.md`,
-   `API_SPEC.md`/`DATABASE_SPEC.md` (по необходимости), последние `STAGE16_REPORT.md`/`CODE_AUDIT_STAGE16.md`.
+   `API_SPEC.md`/`DATABASE_SPEC.md` (по необходимости), последние `STAGE18_REPORT.md`/`CODE_AUDIT_STAGE18.md`.
 2. **Проверить:** `git log --oneline -6`, `git tag -l "stage-*"`, `git status --short` (чисто),
-   `.venv/Scripts/pytest.exe -q` (ждать **337 passed / 6 skipped**), `.venv/Scripts/python.exe -m mypy`
+   `.venv/Scripts/pytest.exe -q` (ждать **422 passed / 6 skipped**), `.venv/Scripts/python.exe -m mypy`
    (Success), `.venv/Scripts/ruff.exe check .` (All checks passed).
 3. **Соблюдать:** Architecture Freeze; staged delivery (план → СТОП → реализация → gate → 3 отчёта →
    3 коммита + тег → СТОП на приёмку); offline-first + RV-статусы; независимость подсистем через Protocol'ы;
    стиль §12; 0 `type: ignore`.
-4. **Выполнять** Этап 17 по §14 — **только после разрешения владельца**, начиная с плана.
+4. **Выполнять** Этап 19 по §14 — **только после разрешения владельца**, начиная с плана.
