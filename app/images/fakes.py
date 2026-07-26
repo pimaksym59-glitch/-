@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+from collections.abc import Sequence
 
 from PIL import Image
 
@@ -14,6 +15,8 @@ from app.core.providers.base import Capability, ProviderKind
 from app.core.providers.health import ProviderHealth
 from app.core.providers.registry import FAKE_NAME
 from app.images.base import ImageResult
+from app.images.types import ImageMetadata
+from app.images.validation import ImageValidationResult
 
 
 class FakeImageProvider:
@@ -41,3 +44,17 @@ class FakeImageProvider:
     def _colour(self, prompt: str) -> tuple[int, int, int]:
         digest = hashlib.sha256(prompt.encode("utf-8")).digest()
         return (digest[0], digest[1], digest[2])
+
+
+class FakeImageValidator:
+    """Deterministic image validator (§R6.7) — returns a configured verdict. Real face/CLIP is
+    RV-14."""
+
+    def __init__(self, *, passed: bool = True, issues: Sequence[str] = ()) -> None:
+        self._passed = passed
+        self._issues = tuple(issues)
+
+    async def validate(
+        self, image: bytes, metadata: ImageMetadata, *, actor_refs: Sequence[str]
+    ) -> ImageValidationResult:
+        return ImageValidationResult(passed=self._passed, issues=self._issues)
