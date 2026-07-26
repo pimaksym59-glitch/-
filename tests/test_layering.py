@@ -23,6 +23,7 @@ DOMAIN_PACKAGES: frozenset[str] = frozenset(
         "rag",
         "validators",
         "analytics",
+        "admin",
         "notifications",
     }
 )
