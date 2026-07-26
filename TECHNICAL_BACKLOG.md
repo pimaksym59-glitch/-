@@ -78,14 +78,17 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-13 | Validation runtime: реальный **LLM-judge** (humanness §R5.8) и **vector-стадия dedup** (§R5.7 через Memory/RAG+embeddings) под живыми LLM/embedding-API; ML-валидаторы — расширения | Этап 14 = движок offline (rule-gates/trigram/stop-list) + фейк-порты; реальные judge/vector-dedup — через порты | 14 (при LLM+embeddings) | P1 | Pending LLM + embeddings |
 | RV-14 | Image runtime: реальная генерация против живых image-провайдеров (Nano Banana/Flux/OpenAI/Ideogram), **identity-conditioning по референсам** (§R6.1), **CLIP/face-embedding-валидация** (§R6.4/R6.7); batch/streaming — расширения | Этап 15 = движок offline на `FakeImageProvider` + фейк-валидаторе (thumbnail/phash offline); реальные провайдеры/валидатор — через порты | 15 (при image-API) | P1 | Pending image-API |
 | RV-15 | Telegram runtime: реальный **Bot API/aiogram** (send/receive), **webhook/polling**, distributed rate-limiter под нагрузкой (§R7.6), at-least-once-доставка (§R7.4); real Redis-`StateStore`/`RateLimiter`/`IdempotencyGuard`; multi-platform/MTProto — расширения | Этап 16 = движок offline на `FakeTelegramProvider` + фейк-source/state/rate/idempotency; реальные адаптеры — через порты | 16 (при Bot API) | P1 | Pending Bot API |
+| RV-16 | Analytics/Observability runtime: реальный **экспорт telemetry** (OpenTelemetry span/Prometheus metrics), реальный **экспорт/персистентность событий и аудита** в PostgreSQL (`analytics_snapshots`/`api_usage`/`image_usage`/`logs`/`errors`/`audit_log`, наследует RV-9), сбор **engagement**-сигналов (§R7.3/§R11.3, наследует RV-15), внешние analytics-backends/audit-sinks; вычислительная аналитика §R11.4–R11.8 (bandit/experiments/report/forecast) — последующие стадии | Этап 17 = подсистема offline stdlib-only на детерминированных фейках (event/metrics/audit/tracing/export-seam'ы); реальные экспортёры/бэкенды — через порты и seam'ы (raise `NotImplementedError`) | 17 (при бэкендах/БД) | P1 | Pending telemetry/DB backends |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **15 Runtime Verification
-Required (RV-1…RV-15)**. Обновлено после Этапа 16: добавлен RV-15 (Telegram против живого Bot API/webhook/
-polling); Telegram Engine — **library-agnostic (no aiogram), полностью offline** на фейках, покрытие
-подсистемы ~99%, `mypy --strict` без `type: ignore`. Retry — reuse `workers`; rate-limit/idempotency/
-state — порты; webhook/polling/multi-platform — расширения (RV-15). Ни один пункт не блокирует
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **16 Runtime Verification
+Required (RV-1…RV-16)**. Обновлено после Этапа 17: добавлен RV-16 (Analytics/Observability — реальный
+экспорт telemetry/audit, персистентность, engagement, внешние бэкенды); Analytics & Observability —
+**независимая доменная подсистема stdlib-only, полностью offline** на детерминированных фейках, покрытие
+подсистемы ~99%, `mypy --strict` без `type: ignore`. Event/Metric/Audit — независимые потоки; retention/
+sampling — отдельные стратегии; tracing/metrics/logging — только hooks; OTel/Prometheus/внешние —
+seam'ы без реализации (RV-16). Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.

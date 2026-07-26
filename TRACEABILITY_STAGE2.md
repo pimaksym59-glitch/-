@@ -439,8 +439,22 @@ Statically Verified:        13 / 13   (types/mapping/source/router/registry/hand
 Runtime Verified:            n/a       (Этап 16 offline на FakeTelegramProvider; Bot API/webhook/polling — RV-15)
 ```
 
-Ни одно требование Этапов 1–16 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 17 (Analytics & Observability): 21 требование владельца (§R11.1/§R11.9, §R12.9/§R12.10, §R10.8,
+§R7.3, §R3.1/3.8) — три статуса:**
+```
+Implemented:                21 / 21
+Statically Verified:        21 / 21   (ports/taxonomy/correlation/events/registry/sampling/collector/
+                                       dispatcher/metrics/counters/timers/histograms/aggregation/tracing/
+                                       audit/audit_pipeline/observability/export-seams/retention/pipeline/
+                                       engine + композиция; подсистема ~99%; 40 тестов; 0 type: ignore;
+                                       stdlib-only; analytics ⟂ content/validators/images/telegram/memory/rag/
+                                       workers/providers; Event⟂Metric⟂Audit; pipeline ⟂ audit_pipeline)
+Runtime Verified:            n/a       (Этап 17 offline на детерминированных фейках; экспорт telemetry/audit,
+                                       персистентность, engagement, OTel/Prometheus/внешние — RV-16)
+```
+
+Ни одно требование Этапов 1–17 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-15). Этапы 11–16 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram runtime —
-RV-10/RV-11/RV-12/RV-13/RV-14/RV-15). Блокеров для Этапа 17 нет.
+RV-1…RV-16). Этапы 11–17 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram/Analytics
+runtime — RV-10…RV-16). Блокеров для Этапа 18 нет.

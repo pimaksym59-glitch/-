@@ -329,11 +329,37 @@ pytest tests/telegram tests/services/test_telegram.py   # offline, deterministic
 > **Runtime Verification Pending** (RV-15). Offline tests cover mapping, routing, dispatch, all send
 > modes, idempotency, recovery and the ports on fakes (subsystem ~99%).
 
+## Analytics & Observability (§R11)
+
+The Analytics subsystem in `app/analytics` is a **fully independent, stdlib-only domain** — it imports
+nothing from the other engines/subsystems, the queue/provider infrastructure, or any external SDK, and
+everything crosses through public Protocols. It is the observability & event/metrics/audit **foundation**
+(not the computational analytics — reports, recommendations, bandit and experiments come later). Three
+independent flows: an **event** flow (immutable `Event` + centralised typed taxonomy → typed thread-safe
+`EventRegistry` → `EventCollector` (accept only) → `EventDispatcher` (deliver only) → exporters, with a
+separate `SamplingStrategy`); a **metrics** flow (separate `Counter`/`Timer`/`Histogram` components, a
+typed `MetricRegistry`, and a `MetricsAggregator` kept separate from export); and an **audit** flow whose
+`AuditPipeline` is fully separate from the analytics pipeline (§R10.8). A standalone `CorrelationId` links
+them; tracing/metrics/logging are **hooks only**; `RetentionStrategy` is a separate strategy. Export
+interfaces are Protocols, and OpenTelemetry/Prometheus/external-backend/external-audit **seams are declared
+but not implemented** (no SDK imports). Compose with `app.services.analytics.build_analytics_engine`, which
+also bridges the existing queue `Metrics`/`EventLogger` in via thin adapters (reuse). Time and ids are
+injected, so fakes are deterministic (no randomness).
+
+```bash
+pytest tests/analytics tests/services/test_analytics.py   # offline, deterministic fakes
+```
+
+> Real telemetry/audit export (OpenTelemetry/Prometheus/external), persistence to PostgreSQL, and
+> engagement collection are **Runtime Verification Pending** (RV-16). Offline tests cover the taxonomy,
+> event/metrics/audit flows, sampling/retention strategies, tracing hooks, observability records and the
+> export seams on fakes (subsystem ~99%).
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
-15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
+15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.
