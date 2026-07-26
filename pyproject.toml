@@ -101,5 +101,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "integration: touches DB/network; run only when RUN_INTEGRATION=1 (§R3.9, TEST_PLAN)",
+    "e2e: offline end-to-end pipeline scenarios on fakes (§R13.2, T-E)",
+    "contract: fakes conform to public Protocols (§R2.10, T-C)",
 ]
 addopts = "-ra"
