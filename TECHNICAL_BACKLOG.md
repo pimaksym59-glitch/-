@@ -80,16 +80,18 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-15 | Telegram runtime: реальный **Bot API/aiogram** (send/receive), **webhook/polling**, distributed rate-limiter под нагрузкой (§R7.6), at-least-once-доставка (§R7.4); real Redis-`StateStore`/`RateLimiter`/`IdempotencyGuard`; multi-platform/MTProto — расширения | Этап 16 = движок offline на `FakeTelegramProvider` + фейк-source/state/rate/idempotency; реальные адаптеры — через порты | 16 (при Bot API) | P1 | Pending Bot API |
 | RV-16 | Analytics/Observability runtime: реальный **экспорт telemetry** (OpenTelemetry span/Prometheus metrics), реальный **экспорт/персистентность событий и аудита** в PostgreSQL (`analytics_snapshots`/`api_usage`/`image_usage`/`logs`/`errors`/`audit_log`, наследует RV-9), сбор **engagement**-сигналов (§R7.3/§R11.3, наследует RV-15), внешние analytics-backends/audit-sinks; вычислительная аналитика §R11.4–R11.8 (bandit/experiments/report/forecast) — последующие стадии | Этап 17 = подсистема offline stdlib-only на детерминированных фейках (event/metrics/audit/tracing/export-seam'ы); реальные экспортёры/бэкенды — через порты и seam'ы (raise `NotImplementedError`) | 17 (при бэкендах/БД) | P1 | Pending telemetry/DB backends |
 | RV-17 | Admin Panel runtime: реальный **Web UI (HTMX/HTTP)**/браузерные сценарии, cookie-сессия/CSRF по проводу, реальный **хэшер паролей/MFA/внешние SSO** (OAuth/OIDC/LDAP/SAML), **персистентность** (`users`/`audit_log`/`config_versions`/`prompts`/каналы/… → PostgreSQL, наследует RV-9), действия панели **через очередь** (наследует RV-7), живые Analytics/Providers/AI-Studio (наследует RV-11/RV-16) | Этап 18 = подсистема offline на детерминированных фейках (authn/authz/RBAC/sessions/CSRF/management/dashboards/AI-Studio); реальные store'ы/UI/SSO — через порты и seam'ы (raise `NotImplementedError`) | 18 (при Web UI/БД/SSO) | P1 | Pending Web UI/DB/SSO |
+| RV-18 | Test Infrastructure runtime: реальные **performance/load**, **stress**, **chaos**, **mutation** (mutmut/cosmic-ray), **Hypothesis**, **distributed execution** (pytest-xdist), **CI/CD-пайплайн** (§R12.12), coverage-enforcement; реальные integration против живых PG/Redis/API (наследует RV-4…RV-17) | Этап 19 = инфраструктура вне `app/`, offline на детерм. сидах/фейках (модели/раннеры/решения); тяжёлые инструменты — seam'ы (raise `NotImplementedError`), не устанавливаются | 19 (при инструментах/CI/сервисах) | P1 | Pending tools/CI/services |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **17 Runtime Verification
-Required (RV-1…RV-17)**. Обновлено после Этапа 18: добавлен RV-17 (Admin Panel — реальный Web UI/HTMX/HTTP,
-cookie-сессия/CSRF по проводу, хэшер/MFA/SSO, персистентность, действия через очередь, live-integrations);
-Admin Panel — **независимая доменная подсистема, полностью offline** на детерминированных фейках, покрытие
-подсистемы ~99%, `mypy --strict` без `type: ignore`. Authentication ⟂ Authorization ⟂ RBAC; sessions/CSRF/
-management/pagination/filtering/search — независимые компоненты; metrics/logging — только hooks; Web UI/SSO/
-MFA/rollout — seam'ы без реализации (RV-17). Ни один пункт не блокирует
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **18 Runtime Verification
+Required (RV-1…RV-18)**. Обновлено после Этапа 19: добавлен RV-18 (Test Infrastructure — реальные load/
+stress/chaos/mutation/Hypothesis/distributed/CI-CD/coverage-enforcement/real-integration); Test
+Infrastructure — **независимая от production подсистема вне `app/`, полностью offline** на детерм. сидах/
+фейках, покрытие `tests/framework` ~99%, `mypy --strict` без `type: ignore`. Единый SeedManager; Fixtures ⟂
+Factories; 9 отдельных стратегий (snapshot/property/mutation/performance/concurrency/stress/chaos/
+compatibility/regression); Reporting/Coverage — отдельные компоненты; CI/CD/distributed — seam'ы без
+реализации (RV-18); `app/` не изменён. Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.

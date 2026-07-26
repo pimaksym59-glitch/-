@@ -1,10 +1,10 @@
 # PROJECT HANDOFF — AI Telegram Automation Platform
 
-**Дата:** 2026-07-27 · **Ветка:** `master` · **Последний тег:** `stage-18-admin-panel` · **Версия:** 0.1.0
+**Дата:** 2026-07-27 · **Ветка:** `master` · **Последний тег:** `stage-19-tests` · **Версия:** 0.1.0
 · **ОС:** Windows 11 · shell PowerShell + Git-Bash · Рабочая папка: `C:\Users\Fupxrx\Desktop\projects` ·
 venv: `.venv` (Python **3.14.6**). Инструменты запускать через `.venv/Scripts/`:
 `.venv/Scripts/ruff.exe check .`, `.venv/Scripts/python.exe -m mypy`, `.venv/Scripts/pytest.exe -q`.
-Рабочее дерево **чистое**. Файлов: **256** `.py` в `app/`, **97** в `tests/`.
+Рабочее дерево **чистое**. Файлов: **256** `.py` в `app/`, **131** в `tests/`.
 
 ---
 
@@ -130,22 +130,23 @@ projects/
 | 16 Telegram Engine | `stage-16-telegram-engine` | `app/telegram/*` (**no aiogram**): mapping/source(webhook/polling)/router/registry/handlers/dispatcher/middleware/state/formatter/attachments/ratelimit/idempotency/retry/recovery/publishing; на `FakeTelegramProvider`; ~99% |
 | 17 Analytics & Observability | `stage-17-analytics` | `app/analytics/*` (**stdlib-only**): event/taxonomy/registry/collector/dispatcher/sampling/pipeline + metrics(counters/timers/histograms/aggregation) + audit-pipeline + correlation + tracing/observability hooks + export-seam'ы + retention; на детерм. фейках; ~99% |
 | 18 Admin Panel | `stage-18-admin-panel` | `app/admin/*` (**независим, без fastapi**): authn⟂authz⟂RBAC + sessions/CSRF + management(users/channels/prompts/providers/config) + dashboards(health/metrics/analytics/jobs/errors) + feature-flags + pagination/filtering/search + DTO-mapping + AI-Studio + Web UI/SSO seam'ы; на детерм. фейках; ~99% |
+| 19 Test Infrastructure | `stage-19-tests` | `tests/framework|contract|e2e` (**вне `app/`**): SeedManager + data + factories⟂fixtures + fake-catalogue + unit/integration/contract/e2e-архитектуры + 9 стратегий (snapshot/property/mutation/performance/concurrency/stress/chaos/compatibility/regression) + reporting/coverage + CI/distributed seam'ы; E2E-пайплайн + contract-тесты + independence-guard; ~99% |
 
 **Toolchain на HEAD:** ruff — All checks passed; `mypy --strict` — Success (286 files); pytest —
-**422 passed, 6 skipped** (все skipped = gated integration за `RUN_INTEGRATION=1` + сервисы). `0 type: ignore`
+**466 passed, 6 skipped** (все skipped = gated integration за `RUN_INTEGRATION=1` + сервисы). `0 type: ignore`
 во всём коде.
 
 ## 6. Что находится в работе
 
-**Ничего в процессе.** Этап 18 завершён, принят и закоммичен; рабочее дерево чистое. Следующий — Этап 19
-(Tests), **план ещё не создан** (ждёт разрешения владельца начать).
+**Ничего в процессе.** Этап 19 завершён, принят и закоммичен; рабочее дерево чистое. Следующий — Этап 20
+(Docs & DevOps), **план ещё не создан** (ждёт разрешения владельца начать).
 
 ## 7. Что осталось сделать (по §R13.1)
 
-19. **Tests** (сквозные/интеграционные, §R13.2 E2E) →
-20. **Docs** (+ DevOps §R12.13: CI/CD, backup/restore, monitoring/alerting, secret manager, uv.lock).
-Плюс наполнение доменных стадий реальными адаптерами (RV-10..RV-17) при появлении сервисов. Аналитические
-вычисления §R11.4–R11.8 (bandit/experiments/report/forecast) — поверх фундамента Этапа 17.
+20. **Docs & DevOps** (§R12.13: документация + CI/CD, backup/restore, monitoring/alerting, secret manager,
+    uv.lock) — финальный этап.
+Плюс наполнение доменных стадий реальными адаптерами (RV-10..RV-18) при появлении сервисов/инструментов.
+Аналитические вычисления §R11.4–R11.8 (bandit/experiments/report/forecast) — поверх фундамента Этапа 17.
 
 ## 8. Все TODO (`TECHNICAL_BACKLOG.md` — живой)
 
@@ -172,7 +173,8 @@ projects/
   vector-dedup; RV-14 Image против живых провайдеров + identity/CLIP; RV-15 Telegram против живого Bot API/
   webhook/polling + distributed rate-limit + at-least-once; RV-16 Analytics экспорт telemetry (OTel/
   Prometheus)/персистентность/engagement/внешние бэкенды; RV-17 Admin Web UI (HTMX/HTTP)/браузер/cookie-
-  сессия/CSRF по сети/хэшер-паролей/MFA/SSO/персистентность/действия через очередь.
+  сессия/CSRF по сети/хэшер-паролей/MFA/SSO/персистентность/действия через очередь; RV-18 Test Infra —
+  реальные load/stress/chaos/mutation/Hypothesis/distributed(xdist)/CI-CD/coverage-enforcement.
 
 ## 9. Известные баги
 
@@ -244,43 +246,43 @@ redis:7-alpine, caddy:2-alpine. Floor Python `>=3.13` (dev 3.14, прод-обр
 
 ## 13. Последние изменения
 
-- Завершён и **принят Этап 18 (Admin Panel)** — тег `stage-18-admin-panel` (3 коммита feat/test/docs).
-  Независимая доменная подсистема `app/admin/` (без fastapi/starlette, без импорта других подсистем):
-  authentication ⟂ authorization ⟂ RBAC (immutable-модель, 5 ролей), sessions/CSRF отдельными компонентами,
-  независимые management-сервисы (User/Channel/Prompt/Provider/Config) с RBAC-gate и маскированием секретов,
-  dashboards (health/metrics/analytics/jobs/errors) через порты, feature flags, независимые pagination/
-  filtering/search, отдельный DTO-mapping, hooks, изолированный AI Studio (§R10.9), Web UI/SSO/MFA/rollout —
-  seam'ы. Composition `app/services/admin.py` (delegation-фасад + адаптеры к публичным интерфейсам Analytics).
-  Backlog +RV-17; traceability +блок Этапа 18 (24/24).
-- Ранее принят Этап 17 (Analytics & Observability) — тег `stage-17-analytics`: независимая stdlib-only
-  подсистема (event/metrics/audit/tracing/export-seam'ы), покрытие ~99%.
-- Дерево чистое; последний тег `stage-18-admin-panel`.
+- Завершён и **принят Этап 19 (Test Infrastructure)** — тег `stage-19-tests` (3 коммита feat/test/docs).
+  Независимая от production подсистема **вне `app/`** (`tests/framework|contract|e2e`): единый `SeedManager`,
+  детерминированная генерация, Fixtures ⟂ Factories, каталог фейков, архитектуры Unit/Integration/Contract/
+  E2E, девять отдельных стратегий (snapshot/property/mutation/performance/concurrency/stress/chaos/
+  compatibility/regression), Reporting/Coverage отдельными компонентами, CI/CD+distributed — seam'ы;
+  E2E-пайплайн (§R13.2) + contract-тесты фейков + independence/invariant-тесты. `app/` **не изменён**.
+  Backlog +RV-18; traceability +блок Этапа 19 (27/27).
+- Ранее принят Этап 18 (Admin Panel) — тег `stage-18-admin-panel`: независимая доменная подсистема
+  `app/admin/` (authn⟂authz⟂RBAC, sessions/CSRF, management, dashboards, AI-Studio, Web UI/SSO seam'ы).
+- Дерево чистое; последний тег `stage-19-tests`.
 
 ## 14. Следующий шаг
 
-**Этап 19 — Tests** (§R13.1 шаг 19, §R13.2). Владелец ещё **не** дал разрешения начать. Порядок действий
-(строго по staged delivery):
+**Этап 20 — Documentation & DevOps** (§R13.1 шаг 20, §R12.13) — финальный этап. Владелец ещё **не** дал
+разрешения начать. Порядок действий (строго по staged delivery):
 
-1. Дождаться от владельца «**Разрешаю начать Этап 19**» (+ возможные требования к плану).
-2. Подготовить **только** `TASK_BREAKDOWN_STAGE19.md` (последовательность задач, создаваемые файлы, охват
-   тестов, критерии, риски, реализуемые требования MASTER_SPEC + разделы «Публичные контракты» (если есть)/
-   «Матрица зависимостей»/«Архитектурная проверка (план)»). **СТОП на утверждение.**
-3. Ключевой контекст Tests (§R13.2): сквозные/интеграционные E2E-сценарии поверх готовых offline-подсистем;
-   gated-интеграция (реальные PG/Redis/API) за `RUN_INTEGRATION=1` — не засчитывать без сервисов (RV);
-   не менять архитектуру и существующие подсистемы; переиспользовать фейки/порты.
+1. Дождаться от владельца «**Разрешаю начать Этап 20**» (+ возможные требования к плану).
+2. Подготовить **только** `TASK_BREAKDOWN_STAGE20.md` (последовательность задач, создаваемые файлы, охват
+   документации + DevOps, критерии, риски, реализуемые требования MASTER_SPEC + разделы «Матрица
+   зависимостей»/«Архитектурная проверка (план)»). **СТОП на утверждение.**
+3. Ключевой контекст Docs & DevOps (§R12.13, §R13.4): пользовательская/операционная документация; CI/CD
+   (§R12.12 format→static→tests), backup/restore, monitoring/alerting, secret manager, `uv.lock`; реальные
+   пайплайны/инфраструктура — RV (наследуют RV-1/RV-18); не менять архитектуру `app/`.
 4. После утверждения — реализация → gate (ruff/mypy/pytest) → 3 отчёта + обновить живые доки + README →
-   3 коммита + тег `stage-19-tests` → **СТОП на приёмку**.
+   3 коммита + тег `stage-20-docs` → **СТОП на приёмку**.
 
 ---
 
 ## Быстрый старт для нового чата
 
 1. **Прочитать:** `MASTER_SPEC.md` (SoT), `TECHNICAL_BACKLOG.md`, `TRACEABILITY_STAGE2.md`, `HANDOFF.md`,
-   `API_SPEC.md`/`DATABASE_SPEC.md` (по необходимости), последние `STAGE18_REPORT.md`/`CODE_AUDIT_STAGE18.md`.
+   `TEST_PLAN.md`/`API_SPEC.md`/`DATABASE_SPEC.md` (по необходимости), последние `STAGE19_REPORT.md`/
+   `CODE_AUDIT_STAGE19.md`.
 2. **Проверить:** `git log --oneline -6`, `git tag -l "stage-*"`, `git status --short` (чисто),
-   `.venv/Scripts/pytest.exe -q` (ждать **422 passed / 6 skipped**), `.venv/Scripts/python.exe -m mypy`
+   `.venv/Scripts/pytest.exe -q` (ждать **466 passed / 6 skipped**), `.venv/Scripts/python.exe -m mypy`
    (Success), `.venv/Scripts/ruff.exe check .` (All checks passed).
 3. **Соблюдать:** Architecture Freeze; staged delivery (план → СТОП → реализация → gate → 3 отчёта →
    3 коммита + тег → СТОП на приёмку); offline-first + RV-статусы; независимость подсистем через Protocol'ы;
    стиль §12; 0 `type: ignore`.
-4. **Выполнять** Этап 19 по §14 — **только после разрешения владельца**, начиная с плана.
+4. **Выполнять** Этап 20 по §14 — **только после разрешения владельца**, начиная с плана.

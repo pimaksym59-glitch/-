@@ -382,11 +382,35 @@ pytest tests/admin tests/services/test_admin.py   # offline, deterministic fakes
 > Providers/AI-Studio runs are **Runtime Verification Pending** (RV-17). Offline tests cover RBAC, auth,
 > sessions, CSRF, the management services, dashboards, feature flags and the seams on fakes (subsystem ~99%).
 
+## Test Infrastructure (§R13, §R2.10)
+
+The test infrastructure lives **outside `app/`** — in `tests/framework/`, `tests/contract/`, `tests/e2e/`
+— so it is fully independent of production code (production never imports it, enforced by an invariant
+test). It consumes production only through **public** surfaces: `app.services.*` builders,
+`app.<subsystem>.fakes`, and public DTO/Protocol types. A single **`SeedManager`** is the one source every
+generator uses, so data is reproducible with no randomness. **Fixtures** (environment assembly via
+`build_*`) are a separate subsystem from **Factories** (deterministic public-DTO builders). It models the
+test pyramid (Unit/Integration/Contract/E2E) and ships **nine separate strategies** — snapshot,
+property-based (Hypothesis seam), mutation (mutmut seam), performance, concurrency, stress, chaos
+(deterministic fault injection), compatibility, regression (kept separate from snapshot) — plus **Reporting**
+and **Coverage** as standalone components (coverage is not tied to pytest). CI/CD and distributed-execution
+are declared seams. **Contract tests** assert the subsystems' fakes conform to their public Protocols;
+**E2E tests** run the 5-stage pipeline (§R13.2) offline (happy path, fail-fast chaining, LEAD_TIME
+deferral).
+
+```bash
+pytest tests/framework tests/contract tests/e2e   # offline, deterministic
+```
+
+> Real performance/stress/chaos/mutation runs, Hypothesis, distributed execution (pytest-xdist), the CI/CD
+> pipeline, coverage enforcement and live-service integration are **Runtime Verification Pending** (RV-18).
+> No heavy tooling is installed — it is declared as seams. `app/` is unchanged (Architecture Freeze).
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
-15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. **Admin Panel ✅** → 19. Tests → 20. Docs.
+15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. **Admin Panel ✅** → 19. **Test Infrastructure ✅** → 20. Docs & DevOps.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

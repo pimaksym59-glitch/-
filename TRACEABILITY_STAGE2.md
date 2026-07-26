@@ -468,8 +468,21 @@ Runtime Verified:            n/a       (Этап 18 offline на детерми�
                                        SSO/MFA/live-integrations — RV-17)
 ```
 
-Ни одно требование Этапов 1–18 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 19 (Test Infrastructure): 27 требований владельца (§R13.2/§R13.4, §R12.12, §R2.10, §R3.9, §R2.6,
+§R3.1/3.8) — три статуса:**
+```
+Implemented:                27 / 27
+Statically Verified:        27 / 27   (seed/data/ports/architecture/pyramid/markers/factories/fixtures/
+                                       fakes/unit/integration/contract/e2e + 9 стратегий (snapshot/property/
+                                       mutation/performance/concurrency/stress/chaos/compatibility/regression)
+                                       + reporting/coverage/seams; вне app/; ~99%; 44 теста; 0 type: ignore;
+                                       app ⊄ tests; framework — только публичные поверхности; app/ не изменён)
+Runtime Verified:            n/a       (Этап 19 offline на детерм. сидах/фейках; load/stress/chaos/mutation/
+                                       Hypothesis/distributed/CI-CD/real-integration — RV-18)
+```
+
+Ни одно требование Этапов 1–19 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-17). Этапы 11–18 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram/Analytics/Admin
-runtime — RV-10…RV-17). Блокеров для Этапа 19 нет.
+RV-1…RV-18). Этапы 11–19 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram/Analytics/Admin/
+Test-Infra runtime — RV-10…RV-18). Блокеров для Этапа 20 нет.
