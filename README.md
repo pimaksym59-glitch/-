@@ -308,11 +308,32 @@ pytest tests/images tests/services/test_images.py   # offline, deterministic Fak
 > cover the full pipeline, selection, safety, aspect/size, post-processing (thumbnail/phash), regen
 > loop and hooks on fakes (subsystem 100%).
 
+## Telegram Engine (§R7)
+
+The Telegram Engine in `app/telegram` is a **library-agnostic transport** — it never imports aiogram;
+it sends via the Stage-11 `TelegramProvider` and receives via an `UpdateSource` port. **Outbound**
+publishing (§R7.8) supports text/photo/album modes with a MarkdownV2/HTML formatter (length limits
+§R7.7), a separate attachment pipeline, a `RateLimiter` port (§R7.6), a separate idempotency layer
+(dedup marked before send, at-least-once §R7.4) and a separate error-recovery pipeline (ambiguous →
+needs_review; retry reuses the queue infrastructure §R7.5). **Inbound** handling maps raw updates to
+immutable DTOs (in one place), then runs a modular middleware pipeline, a **declarative** router, a
+typed thread-safe handler registry and independent Command/Callback/Message handler Protocols. Webhook
+and Polling are interchangeable strategies; state is a `StateStore` port; a `MessagingPlatform` seam
+leaves room for other platforms. Compose with `app.services.telegram.build_telegram_engine`.
+
+```bash
+pytest tests/telegram tests/services/test_telegram.py   # offline, deterministic fakes
+```
+
+> The real Bot API/aiogram, webhook/polling, distributed rate-limiting and at-least-once delivery are
+> **Runtime Verification Pending** (RV-15). Offline tests cover mapping, routing, dispatch, all send
+> modes, idempotency, recovery and the ports on fakes (subsystem ~99%).
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
-15. **Image Engine ✅** → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
+15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.

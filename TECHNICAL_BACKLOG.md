@@ -77,14 +77,15 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-12 | RAG runtime: реальные **pgvector**-store'ы, живые embedding-вызовы, фактический semantic/keyword/hybrid-поиск + reranking под живыми PostgreSQL + embedding-API; keyword/hybrid(RRF)/cache/versioning/retention — расширения seam'ов | Этап 13 = kernel offline на фейках + `FakeEmbeddingProvider`; реальные бэкенды/поиск — с адаптерами | 13 (при PG+embeddings) | P1 | Pending PG + embeddings |
 | RV-13 | Validation runtime: реальный **LLM-judge** (humanness §R5.8) и **vector-стадия dedup** (§R5.7 через Memory/RAG+embeddings) под живыми LLM/embedding-API; ML-валидаторы — расширения | Этап 14 = движок offline (rule-gates/trigram/stop-list) + фейк-порты; реальные judge/vector-dedup — через порты | 14 (при LLM+embeddings) | P1 | Pending LLM + embeddings |
 | RV-14 | Image runtime: реальная генерация против живых image-провайдеров (Nano Banana/Flux/OpenAI/Ideogram), **identity-conditioning по референсам** (§R6.1), **CLIP/face-embedding-валидация** (§R6.4/R6.7); batch/streaming — расширения | Этап 15 = движок offline на `FakeImageProvider` + фейк-валидаторе (thumbnail/phash offline); реальные провайдеры/валидатор — через порты | 15 (при image-API) | P1 | Pending image-API |
+| RV-15 | Telegram runtime: реальный **Bot API/aiogram** (send/receive), **webhook/polling**, distributed rate-limiter под нагрузкой (§R7.6), at-least-once-доставка (§R7.4); real Redis-`StateStore`/`RateLimiter`/`IdempotencyGuard`; multi-platform/MTProto — расширения | Этап 16 = движок offline на `FakeTelegramProvider` + фейк-source/state/rate/idempotency; реальные адаптеры — через порты | 16 (при Bot API) | P1 | Pending Bot API |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **14 Runtime Verification
-Required (RV-1…RV-14)**. Обновлено после Этапа 15: добавлен RV-14 (Image против живых провайдеров/CLIP/
-identity); Image Engine — **provider-agnostic, полностью offline** на `FakeImageProvider`, покрытие
-подсистемы **100%**, `mypy --strict` без `type: ignore`. Batch/streaming/identity/CLIP — расширения (RV-14).
-Ни один пункт не блокирует
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **15 Runtime Verification
+Required (RV-1…RV-15)**. Обновлено после Этапа 16: добавлен RV-15 (Telegram против живого Bot API/webhook/
+polling); Telegram Engine — **library-agnostic (no aiogram), полностью offline** на фейках, покрытие
+подсистемы ~99%, `mypy --strict` без `type: ignore`. Retry — reuse `workers`; rate-limit/idempotency/
+state — порты; webhook/polling/multi-platform — расширения (RV-15). Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.

@@ -306,6 +306,29 @@
 
 ---
 
+## Этап 16 — Telegram Engine (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 145 | §R7.1 Bot API через провайдер (library-agnostic, не aiogram) | ✅ `TelegramProvider` + внутренние DTO | ✅ end-to-end на фейках; ~99%; grep no-aiogram | ⏳ (реальный Bot API — RV-15) |
+| 146 | §R7.4 at-least-once → needs_review; dedup до отправки | ✅ `idempotency`+`publishing`+`recovery` | ✅ unit (dup skip; ambiguous→needs_review) | ⏳ (реальная доставка — RV-15) |
+| 147 | §R7.5 retry `MAX_RETRIES`/backoff/429-`retry_after` (reuse) | ✅ `retry` → `workers.retry` | ✅ unit (429→transient; auth→permanent) | n/a |
+| 148 | §R7.6 rate-limit пер-бот (ключ bot_token+channel_id) — порт | ✅ `RateLimiter` port | ✅ фейк offline | ⏳ (distributed под нагрузкой — RV-15) |
+| 149 | §R7.7 formatter MarkdownV2/HTML + лимиты | ✅ `formatter` | ✅ unit (escape/truncate) | n/a |
+| 150 | §R7.8 режимы text/photo/album/draft | ✅ `publishing` | ✅ unit (все режимы) | ⏳ (реальная отправка — RV-15) |
+| 151 | §R2.10 только Provider Protocols; §R2.8 distributed rate-limiter | ✅ провайдер+порт | ✅ guard + фейк | ⏳ (RV-15) |
+| 152 | Router декларативен; Handler Registry типизирован/потокобезопасен | ✅ `router`/`registry` | ✅ unit (rules-data; sorted; dup/unknown) | n/a |
+| 153 | Handlers — независимые Protocol (без базового класса) | ✅ Command/Callback/Message | ✅ unit (dispatch) | n/a |
+| 154 | Middleware модульный; Webhook/Polling — взаимозаменяемые стратегии | ✅ `middleware`/`source` | ✅ unit (order; webhook/polling) | ⏳ (реальный webhook/polling — RV-15) |
+| 155 | State через публичный интерфейс; SessionContext immutable | ✅ `StateStore` port + frozen | ✅ unit | ⏳ (Redis-store — RV-15) |
+| 156 | Attachment/Error-Recovery — отдельные Pipeline; Idempotency — отдельный слой | ✅ `attachments`/`recovery`/`idempotency` | ✅ unit | n/a |
+| 157 | Multi-platform — точка расширения; §R3.1 домен, §R3.8 расширяемость | ✅ `MessagingPlatform` seam; guard зелёный | ✅ unit | ⏳ (др. платформы — расширение) |
+
+> **Runtime Verification Pending (RV-15):** реальный Bot API/aiogram (send/receive), webhook/polling,
+> distributed rate-limiter под нагрузкой (§R7.6), at-least-once-доставка (§R7.4) — **вне объёма Этапа 16**.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -406,8 +429,18 @@ Statically Verified:        13 / 13   (aspect/size/prompt/style/enhancement/sele
 Runtime Verified:            n/a       (Этап 15 offline на FakeImageProvider; провайдеры/CLIP/identity — RV-14)
 ```
 
-Ни одно требование Этапов 1–15 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 16 (Telegram Engine): 13 требований (§R7.1–R7.10, §R2.10, §R2.8, §R3.1/3.8) — три статуса:**
+```
+Implemented:                13 / 13
+Statically Verified:        13 / 13   (types/mapping/source/router/registry/handlers/dispatcher/state/
+                                       formatter/attachments/ratelimit/idempotency/retry/recovery/publishing/
+                                       engine + композиция; подсистема ~99%; 31 тест; 0 type: ignore;
+                                       library-agnostic (no aiogram); telegram ⟂ content/validators/images/memory/rag)
+Runtime Verified:            n/a       (Этап 16 offline на FakeTelegramProvider; Bot API/webhook/polling — RV-15)
+```
+
+Ни одно требование Этапов 1–16 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-14). Этапы 11–15 — offline-полные (real-provider/LLM/RAG/Validation/Image runtime —
-RV-10/RV-11/RV-12/RV-13/RV-14). Блокеров для Этапа 16 нет.
+RV-1…RV-15). Этапы 11–16 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram runtime —
+RV-10/RV-11/RV-12/RV-13/RV-14/RV-15). Блокеров для Этапа 17 нет.
