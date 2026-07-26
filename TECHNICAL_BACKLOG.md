@@ -76,14 +76,15 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 | RV-11 | AI-Engine runtime: генерация против **живых** LLM (Anthropic/OpenAI) — фактический model-routing/fallback/streaming/стоимость/латентность под реальными моделями | Этап 12 = движок offline на `FakeLLMProvider`; реальные модели — с адаптерами (наследует RV-10) | 12 (при живых LLM) | P1 | Pending живые LLM |
 | RV-12 | RAG runtime: реальные **pgvector**-store'ы, живые embedding-вызовы, фактический semantic/keyword/hybrid-поиск + reranking под живыми PostgreSQL + embedding-API; keyword/hybrid(RRF)/cache/versioning/retention — расширения seam'ов | Этап 13 = kernel offline на фейках + `FakeEmbeddingProvider`; реальные бэкенды/поиск — с адаптерами | 13 (при PG+embeddings) | P1 | Pending PG + embeddings |
 | RV-13 | Validation runtime: реальный **LLM-judge** (humanness §R5.8) и **vector-стадия dedup** (§R5.7 через Memory/RAG+embeddings) под живыми LLM/embedding-API; ML-валидаторы — расширения | Этап 14 = движок offline (rule-gates/trigram/stop-list) + фейк-порты; реальные judge/vector-dedup — через порты | 14 (при LLM+embeddings) | P1 | Pending LLM + embeddings |
+| RV-14 | Image runtime: реальная генерация против живых image-провайдеров (Nano Banana/Flux/OpenAI/Ideogram), **identity-conditioning по референсам** (§R6.1), **CLIP/face-embedding-валидация** (§R6.4/R6.7); batch/streaming — расширения | Этап 15 = движок offline на `FakeImageProvider` + фейк-валидаторе (thumbnail/phash offline); реальные провайдеры/валидатор — через порты | 15 (при image-API) | P1 | Pending image-API |
 
 ---
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **13 Runtime Verification
-Required (RV-1…RV-13)**. Обновлено после Этапа 14: добавлен RV-13 (Validation LLM-judge/vector-dedup);
-Validation Engine — **полностью независимая подсистема** (stdlib-only), offline на rule-gates + фейк-
-портах, покрытие подсистемы ~99%, `mypy --strict` без `type: ignore`. ML-валидаторы — расширение (RV-13).
+4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **14 Runtime Verification
+Required (RV-1…RV-14)**. Обновлено после Этапа 15: добавлен RV-14 (Image против живых провайдеров/CLIP/
+identity); Image Engine — **provider-agnostic, полностью offline** на `FakeImageProvider`, покрытие
+подсистемы **100%**, `mypy --strict` без `type: ignore`. Batch/streaming/identity/CLIP — расширения (RV-14).
 Ни один пункт не блокирует
 следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.

@@ -283,6 +283,29 @@
 
 ---
 
+## Этап 15 — Image Engine (живое обновление; три раздельных статуса)
+
+| # | Требование | Implemented | Statically Verified | Runtime Verified |
+|---|---|---|---|---|
+| 132 | §R6.9 генерация через интерфейс+фабрику (provider-agnostic) | ✅ `images/engine`+selection | ✅ end-to-end на `FakeImageProvider`; 100% | ⏳ (живые провайдеры — RV-14) |
+| 133 | §R2.10 только `ImageProvider` Protocol (Этап 11) | ✅ через factory | ✅ guard + фейк | ⏳ (реальный клиент — RV-14) |
+| 134 | §R6.1 identity по референсам (refs — вход; capability) | ✅ `ImageSpec.actor_refs` + capability | ✅ unit | ⏳ (кондиционирование — RV-14) |
+| 135 | §R6.2 вымышленные актёры (safety, без генерации) | ✅ `SafetyLayer` | ✅ unit (block real-person) | n/a |
+| 136 | §R6.3 diversity before generation (сцена — данные) | ✅ `SceneDescriptor` в спеке | ✅ unit | n/a |
+| 137 | §R6.4 similarity cascade (phash/scene offline; CLIP порт) | ✅ `PhashStage` + scene + порт | ✅ phash offline unit | ⏳ (CLIP — RV-14) |
+| 138 | §R6.5 regen `IMAGE_MAX_REGEN` ≠ retry | ✅ `regen`+engine loop | ✅ unit (exhaust) | n/a |
+| 139 | §R6.7 image validator — публичный Protocol | ✅ `ImageValidator` port | ✅ фейк offline | ⏳ (face/CLIP — RV-14) |
+| 140 | §R6.8 storage: metadata/thumbnail/phash | ✅ `PostProcessingPipeline` + `ImageMetadata` | ✅ unit | n/a |
+| 141 | Prompt Builder ⟂ Style ⟂ Enhancement; aspect ⟂ size | ✅ отдельные модули | ✅ unit (раздельность) | n/a |
+| 142 | provider ⟂ model selection | ✅ `selection` (2 механизма) | ✅ unit | n/a |
+| 143 | batch/streaming — точки расширения (не реализованы) | ✅ `BatchGenerator`/`ImageStreamSink` seam | ✅ unit (no-op) | ⏳ (batch/progressive — RV-14) |
+| 144 | cost/metrics/logging — hooks; §R3.1 домен, §R3.8 расширяемость | ✅ hooks + guard зелёный | ✅ unit | n/a |
+
+> **Runtime Verification Pending (RV-14):** реальная генерация (Nano Banana/Flux/OpenAI/Ideogram),
+> identity-conditioning (§R6.1), CLIP/face-embedding-валидация (§R6.4/R6.7), batch/streaming — **вне объёма Этапа 15**.
+
+---
+
 ## Итог (живой)
 
 **Этапы 1–2 (unit-верифицируемые): 15 требований.**
@@ -374,8 +397,17 @@ Statically Verified:        11 / 11   (rules/registry/gates/pipeline/decision/en
 Runtime Verified:            n/a       (Этап 14 offline на rule-gates + фейк-портах; LLM-judge/vector-dedup — RV-13)
 ```
 
-Ни одно требование Этапов 1–14 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
+**Этап 15 (Image Engine): 13 требований (§R6.1–R6.9, §R2.10, §R3.1/3.8) — три статуса:**
+```
+Implemented:                13 / 13
+Statically Verified:        13 / 13   (aspect/size/prompt/style/enhancement/selection/safety/postprocess/
+                                       regen/engine + композиция; подсистема **100%**; 18 тестов; 0 type: ignore;
+                                       images ⟂ content/validators/memory/rag)
+Runtime Verified:            n/a       (Этап 15 offline на FakeImageProvider; провайдеры/CLIP/identity — RV-14)
+```
+
+Ни одно требование Этапов 1–15 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
 тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
 0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-13). Этапы 11–14 — offline-полные (real-provider/LLM/RAG/Validation runtime —
-RV-10/RV-11/RV-12/RV-13). Блокеров для Этапа 15 нет.
+RV-1…RV-14). Этапы 11–15 — offline-полные (real-provider/LLM/RAG/Validation/Image runtime —
+RV-10/RV-11/RV-12/RV-13/RV-14). Блокеров для Этапа 16 нет.

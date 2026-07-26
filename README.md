@@ -286,11 +286,33 @@ pytest tests/validators tests/services/test_validation.py   # offline, determini
 > (RV-13). Offline tests cover the rule engine, all four rules (trigram/sentence dedup, stop-list
 > humanization, persona, policy), quality gates, decision and the OutputValidator adapter on fakes.
 
+## Image Engine (§R6)
+
+The Image Engine in `app/images` is a **provider-agnostic orchestrator** over the Stage-11
+`ImageProvider` protocol — no vendor SDK, no content rules; identity is by reference (§R6.1). The
+prompt builder produces the **base** prompt only; the **style pipeline** and the **modular
+enhancement pipeline** are separate stages. Provider selection and model routing are **independent**
+(§R6.9). Aspect ratio is a first-class model (no string literals) and size policy is a separate
+strategy. The **safety layer** decides before generation and never generates (§R6.2). Image
+validation is a public `ImageValidator` port (§R6.7) that drives a **regen** loop (`IMAGE_MAX_REGEN`,
+§R6.5, distinct from infra retries). The **post-processing pipeline** produces a thumbnail and a
+perceptual hash (§R6.8) offline via Pillow. Batch and streaming/progressive generation are extension
+points; cost/metrics/logging are hooks. Compose with `app.services.images.build_image_engine`.
+
+```bash
+pytest tests/images tests/services/test_images.py   # offline, deterministic FakeImageProvider
+```
+
+> Real image providers (Nano Banana/Flux/OpenAI/Ideogram), identity-conditioning (§R6.1) and CLIP/
+> face-embedding validation (§R6.4/§R6.7) are **Runtime Verification Pending** (RV-14). Offline tests
+> cover the full pipeline, selection, safety, aspect/size, post-processing (thumbnail/phash), regen
+> loop and hooks on fakes (subsystem 100%).
+
 ## Implementation order (`MASTER_SPEC.md` §R13.1)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
-15. Image Engine → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
+15. **Image Engine ✅** → 16. Telegram Engine → 17. Analytics → 18. Admin Panel → 19. Tests → 20. Docs.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.
