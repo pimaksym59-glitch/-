@@ -481,8 +481,24 @@ Runtime Verified:            n/a       (Этап 19 offline на детерм. �
                                        Hypothesis/distributed/CI-CD/real-integration — RV-18)
 ```
 
-Ни одно требование Этапов 1–19 (реализованных) **не осталось без реализации**. Открытые пробелы: 2
-тестовых ассерта (TG-2/TG-3, Deferred); **Runtime Verified** 0/4 Docker, 0/15 Persistence, 0/9 Redis,
-0/14 Queue, 0/12 Scheduler, 0/11 API (см. TECHNICAL_BACKLOG → Runtime Verification Required,
-RV-1…RV-18). Этапы 11–19 — offline-полные (real-provider/LLM/RAG/Validation/Image/Telegram/Analytics/Admin/
-Test-Infra runtime — RV-10…RV-18). Блокеров для Этапа 20 нет.
+**Этап 20 (Documentation, Release Engineering & Production Readiness): 30 требований владельца (§R12.6–R12.15,
+§R13.4/§R13.5, §R3.1/3.8) — три статуса:**
+```
+Implemented:                30 / 30   (docs-иерархия 10 разделов + cross-refs; Release Engineering отдельно;
+                                       4 чек-листа + DR; Environment Matrix; Support/Maintenance; DevOps-
+                                       артефакты (Makefile/ci.yml-шаблон/CHANGELOG/CONTRIBUTING/SECURITY);
+                                       8 сводок/реестров: ARCHITECTURE_MAP/DEPENDENCY_MAP/
+                                       MASTER_SPEC_TRACEABILITY_FINAL/PUBLIC_CONTRACT_REGISTRY/ADR_SUMMARY/
+                                       RUNTIME_VERIFICATION_REGISTRY/PRODUCTION_READINESS_SUMMARY/
+                                       PROJECT_COMPLETION_SUMMARY)
+Statically Verified:        30 / 30   (Production Code Freeze: `app/` не изменён; gate неизменён —
+                                       466 passed, mypy 385, 0 type: ignore; layering guard зелёный;
+                                       шаблоны детерминированы; docs не дублируют MASTER_SPEC)
+Runtime Verification Pending: n/a     (реальные релизы/деплой/CI/backup/restore/uv.lock/PRR — RV-1…RV-18)
+```
+
+Ни одно требование Этапов 1–20 (реализованных) **не осталось без реализации**. **Проект завершён — 20/20
+этапов.** Открытые пробелы: 2 тестовых ассерта (TG-2/TG-3, Deferred) + 2 открытых ADR; **Runtime Verified**
+— вся серия RV-1…RV-18 подлежит закрытию на живой инфраструктуре (Production Readiness Review; см.
+TECHNICAL_BACKLOG → Runtime Verification Required и `RUNTIME_VERIFICATION_REGISTRY.md`). Этапы 11–19 —
+offline-полные; Этап 20 — документация без изменения production. Дальнейших этапов нет.

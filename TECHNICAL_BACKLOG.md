@@ -86,12 +86,14 @@ DOCUMENT_AUDIT_V2. **Режим:** только фиксация. Все пун�
 
 **Итого:** 3 Deferred Improvements · 5 Future Architecture Work (FA-2 **✅ implemented Stage 11**; FA-4
 JSON-логгер — точка интеграции в Stage-10 middleware; FA-5 **implemented in code** + seam Stage 11) ·
-4 ADR Candidates (ADR-C2 **closed**) · 5 Operational Risks · 6 Testing Gaps · **18 Runtime Verification
-Required (RV-1…RV-18)**. Обновлено после Этапа 19: добавлен RV-18 (Test Infrastructure — реальные load/
-stress/chaos/mutation/Hypothesis/distributed/CI-CD/coverage-enforcement/real-integration); Test
-Infrastructure — **независимая от production подсистема вне `app/`, полностью offline** на детерм. сидах/
-фейках, покрытие `tests/framework` ~99%, `mypy --strict` без `type: ignore`. Единый SeedManager; Fixtures ⟂
-Factories; 9 отдельных стратегий (snapshot/property/mutation/performance/concurrency/stress/chaos/
-compatibility/regression); Reporting/Coverage — отдельные компоненты; CI/CD/distributed — seam'ы без
-реализации (RV-18); `app/` не изменён. Ни один пункт не блокирует
-следующий этап. Реализуются строго на указанных этапах и/или по команде владельца.
+4 ADR Candidates (ADR-C2 **closed**; ADR-C3=ADR-001 MTProto и ADR-C4=ADR-002 среда — открыты, дефолты
+активны) · 5 Operational Risks · 6 Testing Gaps · **18 Runtime Verification Required (RV-1…RV-18)**.
+**Обновлено после Этапа 20 (ФИНАЛ, проект завершён 20/20):** Этап 20 — только документация/release
+engineering/DevOps-артефакты, **`app/` не изменён** (Production Code Freeze соблюдён; публичные Protocol/
+зависимости/бизнес-логика/layering не тронуты; gate неизменён — 466 passed, mypy 385, 0 `type: ignore`).
+Добавлены сводки/реестры: `ARCHITECTURE_MAP.md`, `DEPENDENCY_MAP.md`, `MASTER_SPEC_TRACEABILITY_FINAL.md`,
+`PUBLIC_CONTRACT_REGISTRY.md`, `ADR_SUMMARY.md`, `RUNTIME_VERIFICATION_REGISTRY.md`,
+`PRODUCTION_READINESS_SUMMARY.md`, `PROJECT_COMPLETION_SUMMARY.md` + дерево `docs/`. Новых RV не добавлено
+(RV-18 — последний). Открытое — только RV-1…RV-18 (Production Readiness Review) и 2 открытых ADR. Ни один
+пункт не блокирует завершение проекта. Дальнейшие действия — только на живой инфраструктуре по решению
+владельца.

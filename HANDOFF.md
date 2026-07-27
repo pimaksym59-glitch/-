@@ -1,10 +1,12 @@
 # PROJECT HANDOFF — AI Telegram Automation Platform
 
-**Дата:** 2026-07-27 · **Ветка:** `master` · **Последний тег:** `stage-19-tests` · **Версия:** 0.1.0
-· **ОС:** Windows 11 · shell PowerShell + Git-Bash · Рабочая папка: `C:\Users\Fupxrx\Desktop\projects` ·
-venv: `.venv` (Python **3.14.6**). Инструменты запускать через `.venv/Scripts/`:
-`.venv/Scripts/ruff.exe check .`, `.venv/Scripts/python.exe -m mypy`, `.venv/Scripts/pytest.exe -q`.
-Рабочее дерево **чистое**. Файлов: **256** `.py` в `app/`, **131** в `tests/`.
+**Дата:** 2026-07-27 · **Ветка:** `master` · **Последний тег:** `stage-20-docs` · **Версия:** 0.1.0 ·
+**СТАТУС: ПРОЕКТ ЗАВЕРШЁН — 20/20 этапов** · **ОС:** Windows 11 · shell PowerShell + Git-Bash · Рабочая
+папка: `C:\Users\Fupxrx\Desktop\projects` · venv: `.venv` (Python **3.14.6**). Инструменты запускать через
+`.venv/Scripts/`: `.venv/Scripts/ruff.exe check .`, `.venv/Scripts/python.exe -m mypy`,
+`.venv/Scripts/pytest.exe -q`. Рабочее дерево **чистое**. Файлов: **256** `.py` в `app/`, **131** в `tests/`.
+Дальнейшая работа — только **Runtime Verification Pending (RV-1…RV-18)** на живой инфраструктуре
+(Production Readiness Review). Итоговый обзор: `PROJECT_COMPLETION_SUMMARY.md`.
 
 ---
 
@@ -131,22 +133,25 @@ projects/
 | 17 Analytics & Observability | `stage-17-analytics` | `app/analytics/*` (**stdlib-only**): event/taxonomy/registry/collector/dispatcher/sampling/pipeline + metrics(counters/timers/histograms/aggregation) + audit-pipeline + correlation + tracing/observability hooks + export-seam'ы + retention; на детерм. фейках; ~99% |
 | 18 Admin Panel | `stage-18-admin-panel` | `app/admin/*` (**независим, без fastapi**): authn⟂authz⟂RBAC + sessions/CSRF + management(users/channels/prompts/providers/config) + dashboards(health/metrics/analytics/jobs/errors) + feature-flags + pagination/filtering/search + DTO-mapping + AI-Studio + Web UI/SSO seam'ы; на детерм. фейках; ~99% |
 | 19 Test Infrastructure | `stage-19-tests` | `tests/framework|contract|e2e` (**вне `app/`**): SeedManager + data + factories⟂fixtures + fake-catalogue + unit/integration/contract/e2e-архитектуры + 9 стратегий (snapshot/property/mutation/performance/concurrency/stress/chaos/compatibility/regression) + reporting/coverage + CI/distributed seam'ы; E2E-пайплайн + contract-тесты + independence-guard; ~99% |
+| 20 Docs / Release / Prod-Readiness | `stage-20-docs` | **`app/` не изменён**: дерево `docs/` (10 разделов + cross-refs), Release Engineering (versioning/packaging/upgrade/rollback + 3 чек-листа + DR + automation-seams), Environment Matrix, Support/Maintenance, DevOps (Makefile/ci.yml-шаблон/CHANGELOG/CONTRIBUTING/SECURITY) + 8 итоговых сводок/реестров |
 
-**Toolchain на HEAD:** ruff — All checks passed; `mypy --strict` — Success (286 files); pytest —
+**Toolchain на HEAD:** ruff — All checks passed; `mypy --strict` — Success (385 files); pytest —
 **466 passed, 6 skipped** (все skipped = gated integration за `RUN_INTEGRATION=1` + сервисы). `0 type: ignore`
 во всём коде.
 
 ## 6. Что находится в работе
 
-**Ничего в процессе.** Этап 19 завершён, принят и закоммичен; рабочее дерево чистое. Следующий — Этап 20
-(Docs & DevOps), **план ещё не создан** (ждёт разрешения владельца начать).
+**Ничего.** **Проект завершён — все 20 этапов приняты и закоммичены** (теги `stage-1-baseline` …
+`stage-20-docs`); рабочее дерево чистое. Дальнейших этапов нет.
 
-## 7. Что осталось сделать (по §R13.1)
+## 7. Что осталось сделать
 
-20. **Docs & DevOps** (§R12.13: документация + CI/CD, backup/restore, monitoring/alerting, secret manager,
-    uv.lock) — финальный этап.
-Плюс наполнение доменных стадий реальными адаптерами (RV-10..RV-18) при появлении сервисов/инструментов.
-Аналитические вычисления §R11.4–R11.8 (bandit/experiments/report/forecast) — поверх фундамента Этапа 17.
+**Только Runtime Verification Pending (RV-1…RV-18)** — на живой инфраструктуре в рамках **Production
+Readiness Review** (Docker/PostgreSQL/Redis/внешние API/CI/деплой/backup-restore). Реестр:
+`RUNTIME_VERIFICATION_REGISTRY.md`; оценка готовности: `PRODUCTION_READINESS_SUMMARY.md`; финальный обзор:
+`PROJECT_COMPLETION_SUMMARY.md`. Плюс 2 открытых ADR (ADR-001 MTProto, ADR-002 среда) и аналитические
+вычисления §R11.4–R11.8 (bandit/experiments/report/forecast) — поверх фундамента Этапа 17, по решению
+владельца.
 
 ## 8. Все TODO (`TECHNICAL_BACKLOG.md` — живой)
 
@@ -259,30 +264,25 @@ redis:7-alpine, caddy:2-alpine. Floor Python `>=3.13` (dev 3.14, прод-обр
 
 ## 14. Следующий шаг
 
-**Этап 20 — Documentation & DevOps** (§R13.1 шаг 20, §R12.13) — финальный этап. Владелец ещё **не** дал
-разрешения начать. Порядок действий (строго по staged delivery):
-
-1. Дождаться от владельца «**Разрешаю начать Этап 20**» (+ возможные требования к плану).
-2. Подготовить **только** `TASK_BREAKDOWN_STAGE20.md` (последовательность задач, создаваемые файлы, охват
-   документации + DevOps, критерии, риски, реализуемые требования MASTER_SPEC + разделы «Матрица
-   зависимостей»/«Архитектурная проверка (план)»). **СТОП на утверждение.**
-3. Ключевой контекст Docs & DevOps (§R12.13, §R13.4): пользовательская/операционная документация; CI/CD
-   (§R12.12 format→static→tests), backup/restore, monitoring/alerting, secret manager, `uv.lock`; реальные
-   пайплайны/инфраструктура — RV (наследуют RV-1/RV-18); не менять архитектуру `app/`.
-4. После утверждения — реализация → gate (ruff/mypy/pytest) → 3 отчёта + обновить живые доки + README →
-   3 коммита + тег `stage-20-docs` → **СТОП на приёмку**.
+**Все 20 этапов реализации завершены.** Дальнейших этапов нет. Единственная оставшаяся работа —
+**Production Readiness Review**: закрытие Runtime Verification Pending (RV-1…RV-18) на живой инфраструктуре
+(Docker/PostgreSQL/Redis/внешние API/CI/деплой/backup-restore) в порядке инфра→данные→runtime→адаптеры→
+observability/admin→test-ops, плюс решение 2 открытых ADR. Агенда и критерии:
+`PRODUCTION_READINESS_SUMMARY.md` + `RUNTIME_VERIFICATION_REGISTRY.md`; чек-лист:
+`docs/release/production-readiness-checklist.md`. Ничего из этого не входит в staged delivery — это
+эксплуатационная фаза по решению владельца.
 
 ---
 
 ## Быстрый старт для нового чата
 
-1. **Прочитать:** `MASTER_SPEC.md` (SoT), `TECHNICAL_BACKLOG.md`, `TRACEABILITY_STAGE2.md`, `HANDOFF.md`,
-   `TEST_PLAN.md`/`API_SPEC.md`/`DATABASE_SPEC.md` (по необходимости), последние `STAGE19_REPORT.md`/
-   `CODE_AUDIT_STAGE19.md`.
-2. **Проверить:** `git log --oneline -6`, `git tag -l "stage-*"`, `git status --short` (чисто),
+1. **Прочитать:** `PROJECT_COMPLETION_SUMMARY.md` (итоговый обзор), `MASTER_SPEC.md` (SoT), `ARCHITECTURE_MAP.md`,
+   `DEPENDENCY_MAP.md`, `PUBLIC_CONTRACT_REGISTRY.md`, `RUNTIME_VERIFICATION_REGISTRY.md`,
+   `PRODUCTION_READINESS_SUMMARY.md`, `TECHNICAL_BACKLOG.md`, `docs/README.md`.
+2. **Проверить:** `git log --oneline -6`, `git tag -l "stage-*"` (1…20), `git status --short` (чисто),
    `.venv/Scripts/pytest.exe -q` (ждать **466 passed / 6 skipped**), `.venv/Scripts/python.exe -m mypy`
-   (Success), `.venv/Scripts/ruff.exe check .` (All checks passed).
-3. **Соблюдать:** Architecture Freeze; staged delivery (план → СТОП → реализация → gate → 3 отчёта →
-   3 коммита + тег → СТОП на приёмку); offline-first + RV-статусы; независимость подсистем через Protocol'ы;
-   стиль §12; 0 `type: ignore`.
-4. **Выполнять** Этап 20 по §14 — **только после разрешения владельца**, начиная с плана.
+   (Success, 385 files), `.venv/Scripts/ruff.exe check .` (All checks passed).
+3. **Соблюдать:** Architecture Freeze; **Production Code Freeze** (менять `app/` только через ADR + MAJOR);
+   offline-first + RV-статусы; независимость подсистем через Protocol'ы; стиль §12; 0 `type: ignore`.
+4. **Действовать** только в рамках Production Readiness Review (RV-1…RV-18) на живой инфраструктуре — по
+   отдельному решению владельца.

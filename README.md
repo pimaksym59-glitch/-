@@ -406,11 +406,22 @@ pytest tests/framework tests/contract tests/e2e   # offline, deterministic
 > pipeline, coverage enforcement and live-service integration are **Runtime Verification Pending** (RV-18).
 > No heavy tooling is installed — it is declared as seams. `app/` is unchanged (Architecture Freeze).
 
-## Implementation order (`MASTER_SPEC.md` §R13.1)
+## Implementation order (`MASTER_SPEC.md` §R13.1) — complete (20/20)
 
 1. **Repository structure ✅** → 2. **Configuration ✅** → 3. **Docker ✅** → 4. **PostgreSQL(+pgvector) ✅** →
 5. **Redis ✅** → 6. **ORM models ✅** → 7. **Repositories ✅** → 8. **Task queue + registry ✅** → 9. **Scheduler ✅** → 10. **API ✅** →
 11. **Provider abstractions + fakes ✅** → 12. **AI Engine ✅** → 13. **Memory/RAG ✅** → 14. **Validation ✅** →
-15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. **Admin Panel ✅** → 19. **Test Infrastructure ✅** → 20. Docs & DevOps.
+15. **Image Engine ✅** → 16. **Telegram Engine ✅** → 17. **Analytics & Observability ✅** → 18. **Admin Panel ✅** → 19. **Test Infrastructure ✅** → 20. **Documentation, Release Engineering & Production Readiness ✅**.
 
 Each stage: implement → self-review → tests/types/lint → report → **stop for confirmation**.
+
+## Project status
+
+**Code-complete (Stages 1–20), offline-verified.** Gate: ruff clean · `mypy --strict` Success (385 files,
+0 `type: ignore`) · pytest 466 passed / 6 skipped. Remaining work is **Runtime Verification Pending** on live
+infrastructure — see the [Production Readiness Summary](PRODUCTION_READINESS_SUMMARY.md) and
+[Runtime Verification Registry](RUNTIME_VERIFICATION_REGISTRY.md). Full documentation: [docs/](docs/README.md).
+Final maps: [ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md) · [DEPENDENCY_MAP.md](DEPENDENCY_MAP.md) ·
+[PUBLIC_CONTRACT_REGISTRY.md](PUBLIC_CONTRACT_REGISTRY.md) ·
+[MASTER_SPEC_TRACEABILITY_FINAL.md](MASTER_SPEC_TRACEABILITY_FINAL.md) · [ADR_SUMMARY.md](ADR_SUMMARY.md) ·
+[PROJECT_COMPLETION_SUMMARY.md](PROJECT_COMPLETION_SUMMARY.md).
