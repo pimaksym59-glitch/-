@@ -1,0 +1,16 @@
+/*
+ * Global stylesheet entrypoint. Order matters:
+ *   1. Tailwind v4 core (utilities/preflight)
+ *   2. ONYX tokens (primitives + semantics + @theme map)
+ *   3. ONYX theme utilities
+ *   4. ONYX base element layer
+ */
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+@import '../styles/themes.css';
+@import '../styles/base.css';
+
+/* Tailwind v4 dark variant follows our explicit data-theme attribute
+ * (SSR cookie), not the OS media query — themes are equal-weight and
+ * user-controlled (D2 intro, §F4.4). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));

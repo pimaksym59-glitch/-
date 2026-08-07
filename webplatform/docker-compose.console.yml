@@ -1,0 +1,84 @@
+# Frontend overlay (FS15 T-FS15.2, D2 Option A — owner-approved).
+#
+# Adds the `console` service ALONGSIDE the root `docker-compose.yml` WITHOUT
+# modifying it, `docker/Caddyfile`, or any other backend-track infrastructure
+# file. Those stay exactly as Stage 3/12 left them — no frontend stage has
+# ever edited a file outside `webplatform/`, and this overlay extends that
+# guarantee to infrastructure instead of breaking it. FE-ADR-11 decided
+# "deployment as a separate Next service behind the shared reverse proxy";
+# this file delivers the "separate service" half only — see the NOT DONE HERE
+# note below for the other half, and PRODUCTION_READINESS_RUNBOOK.md item 1
+# for the exact follow-up step.
+#
+# Usage (run from the REPO ROOT, not from webplatform/):
+#
+#   docker compose -f docker-compose.yml -f webplatform/docker-compose.console.yml \
+#     --profile app config
+#
+#     ^ Run this FIRST, before `up`, every time. It has NEVER been executed in
+#       this environment (no `docker` binary here — verified, not assumed;
+#       PRODUCTION_READINESS_RUNBOOK.md item 1). In particular it must confirm
+#       that `build.context: ./console` below resolves to
+#       `webplatform/console` — Compose resolves override-file paths relative
+#       to THIS file's own directory (`webplatform/`), which is the documented
+#       behaviour, but it has not been proven against a real Compose install
+#       here and must not be assumed correct without that one command.
+#
+#   docker compose -f docker-compose.yml -f webplatform/docker-compose.console.yml \
+#     --profile app up console
+#
+# NOT DONE HERE (by the D2 ruling — explicitly deferred, not forgotten):
+#   - No route exists in `docker/Caddyfile` for this service. Until one is
+#     added, `console` builds and starts but is reachable by NOTHING outside
+#     its own Docker network — deliberately: this file does not publish a
+#     host port, because the root Caddyfile's own stated rule
+#     ("the ONLY edge that publishes ports; app/db/redis stay internal",
+#     docker/Caddyfile:1) would otherwise be violated by the very overlay
+#     meant to respect it. See the Runbook for the one Caddyfile line this
+#     needs and why it is not added by this stage.
+#   - The console's OWN client-side calls default to a same-origin `/api/v1`
+#     (`src/shared/config/env.ts`'s own default) — that is what the deferred
+#     Caddy route must satisfy once it exists. Until then, even a manually
+#     published port would serve the shell with every client-side API call
+#     failing; this is a property of the app, not a bug in this overlay.
+
+services:
+  console:
+    build:
+      context: ./console
+      dockerfile: Dockerfile
+    image: telegram-ai-console:latest
+    restart: unless-stopped
+    profiles: ["app"]
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Client-side calls stay same-origin (`/api/v1`) by the app's own
+      # default — that is exactly what the deferred Caddy route must proxy.
+      NEXT_PUBLIC_APP_ENV: ${CONSOLE_APP_ENV:-staging}
+      NEXT_PUBLIC_API_BASE_URL: ${CONSOLE_PUBLIC_API_BASE_URL:-/api/v1}
+      NEXT_PUBLIC_ENABLE_DEVTOOLS: "false"
+      # Server-side (RSC/BFF) calls reach the backend directly over the
+      # internal network. `api` is the service name the ROOT
+      # docker-compose.yml already defines (docker-compose.yml, the `api`
+      # entry under "application roles") — referencing it here does not
+      # require editing that file, because `-f` merges both into one project.
+      INTERNAL_API_BASE_URL: http://api:8000/api/v1
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-session}
+      AUTH_FIXTURE_FORCE: "false"
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    networks:
+      - internal
+      - public
+
+# Matches the root file's network names exactly so Compose merges them as the
+# SAME networks (not a second pair) when both files are passed to `-f`. Their
+# definitions are declared empty here on purpose — the root file
+# (docker-compose.yml) is the one place their driver/options are ever set,
+# and this overlay does not restate or override that.
+networks:
+  internal:
+  public:

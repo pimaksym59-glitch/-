@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Total client JS across all chunks (regression detector — NOT the UX budget)",
+    "path": ".next/static/chunks/*.js",
+    "limit": "777 KB",
+    "gzip": true
+  }
+]

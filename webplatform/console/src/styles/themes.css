@@ -1,0 +1,148 @@
+/*
+ * ONYX theme utilities (D2 §7 elevation, §8 glass, §9 motion, §14 AI).
+ * Reusable, token-only classes shared by shell chrome and shared/ui.
+ * Aurora is reserved EXCLUSIVELY for genuine AI moments (D2 §1.3/§14).
+ */
+
+/* Elevation (D2 §7) */
+.onyx-raised {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-raised);
+}
+.onyx-floating {
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-floating);
+}
+.onyx-overlay {
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-overlay);
+}
+.onyx-modal {
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-modal);
+}
+
+/* Glass (D2 §8) — only on overlay chrome, max 2 concurrent */
+.onyx-glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-default);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--shadow-floating);
+}
+
+/* Scrim for overlay/modal (D2 §7) */
+.onyx-scrim {
+  background: var(--scrim);
+}
+
+/* AI presence & generation (D2 §1.3 / §9 / §14) — AI moments only.
+ * Aurora appears as a subtle animated edge, never as a full fill, never neon. */
+.onyx-ai-wash {
+  background: var(--ai-wash);
+}
+.onyx-aurora-edge {
+  position: relative;
+}
+.onyx-aurora-edge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--aurora-gradient);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* Skeleton shimmer (D2 §9) */
+@keyframes onyx-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.onyx-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-inset) 25%,
+    var(--border-subtle) 37%,
+    var(--surface-inset) 63%
+  );
+  background-size: 200% 100%;
+  animation: onyx-shimmer 1200ms linear infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Page transition (D2 §9) — cross-fade + 8px slide, 240ms standard */
+@keyframes onyx-route-enter {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.onyx-route-enter {
+  animation: onyx-route-enter var(--duration-moderate) var(--ease-standard) both;
+}
+
+/* Streaming caret (D2 §9 / §14) — Iris pulse at the write head */
+@keyframes onyx-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+.onyx-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: var(--ai-accent);
+  animation: onyx-caret 900ms var(--ease-standard) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onyx-skeleton {
+    animation: none;
+    background: var(--surface-inset);
+  }
+  .onyx-caret {
+    animation: none;
+    opacity: 1;
+  }
+  .onyx-aurora-edge::before {
+    animation: none;
+  }
+  .onyx-route-enter {
+    animation: none;
+  }
+}
+
+/* ONYX Shiki dual-theme output (D2 §13.18) — CodeBlock renders both palettes
+   as CSS vars; the active theme picks one. No token values involved. */
+.onyx-shiki span {
+  color: var(--shiki-light);
+}
+:root[data-theme='dark'] .onyx-shiki span {
+  color: var(--shiki-dark);
+}

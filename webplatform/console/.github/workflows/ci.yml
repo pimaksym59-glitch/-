@@ -1,0 +1,105 @@
+name: console-ci
+
+# Frontend engineering gate (Stage 2 §14 / §F6). A change cannot merge unless
+# every gate passes. Visual regression (Chromatic) runs only when a project
+# token is configured.
+
+on:
+  push:
+    paths: ['webplatform/console/**']
+  pull_request:
+    paths: ['webplatform/console/**']
+
+defaults:
+  run:
+    working-directory: webplatform/console
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    # Raised 30 -> 45 alongside the T-FS15.3 E2E-matrix fix (3 viewport
+    # projects instead of 1). This is a conservative buffer, not a measured
+    # CI wall-clock — this environment has no CI runner to time it against
+    # (FE-RV-4). If it still times out on a real runner, split the E2E step
+    # into a matrix job (one per project) rather than raising this further.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: webplatform/console/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Gate 1 — ESLint (ts-eslint strict + jsx-a11y + import boundaries)
+      - name: Lint
+        run: pnpm lint
+
+      # Gate 2 — Prettier
+      - name: Format check
+        run: pnpm format:check
+
+      # Gate 3 — tsc --noEmit strict (0 unjustified any)
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Gate 8 — dependency-cruiser (FSD layer boundaries)
+      - name: Boundaries
+        run: pnpm boundaries
+
+      # Gate 4 — unit/component/integration tests (Vitest + MSW)
+      - name: Unit tests
+        run: pnpm test
+
+      # Production build + Gate 7 — per-route First Load JS budget (FS3
+      # T-FS3.1): `pnpm budget` runs `next build` itself and fails if any
+      # route exceeds the Stage 2 §9 budget.
+      - name: Build + route budget
+        run: pnpm budget
+
+      # Gate 6 — bundle-size budget (size-limit)
+      - name: Bundle size
+        run: pnpm size
+
+      # Gate 9 — Storybook build (visual-regression baseline)
+      - name: Build Storybook
+        run: pnpm build-storybook
+
+      # Gate 5 — a11y + E2E (Playwright + @axe-core/playwright), all three
+      # shipped viewport projects (FS15 T-FS15.3). `playwright.config.ts`
+      # declares desktop-dark / desktop-light / mobile; every FS1-FS14
+      # acceptance ran and reported all three ("400 passed ... across 3
+      # viewports"), but this workflow ran only desktop-dark until now — a
+      # real gap between what every stage certified on a workstation and what
+      # CI would actually have checked. No `--project` filter is passed so a
+      # future project addition to the config cannot silently go unchecked
+      # here either (the same "cannot escape the assertion" principle FS14's
+      # registry-driven palette proof used, applied to CI). `mobile` emulates
+      # Pixel 7 on the Chromium engine, so installing only `chromium` still
+      # covers all three projects.
+      - name: E2E + a11y (desktop-dark, desktop-light, mobile)
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test
+
+  # Gate 9 (optional) — Chromatic visual regression vs the Preview baseline.
+  visual-regression:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    needs: gate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Note
+        run: echo "Configure CHROMATIC_PROJECT_TOKEN and add the Chromatic action to enable visual regression (Stage 2 §14.9)."
