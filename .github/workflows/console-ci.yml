@@ -3,6 +3,12 @@ name: console-ci
 # Frontend engineering gate (Stage 2 §14 / §F6). A change cannot merge unless
 # every gate passes. Visual regression (Chromatic) runs only when a project
 # token is configured.
+#
+# Moved here from webplatform/console/.github/workflows/ci.yml (FE-RV-4):
+# GitHub Actions only discovers workflow files under .github/workflows/ at
+# the repository root — the nested path was never scanned, so this workflow
+# had never once triggered despite matching pushes. Content/behavior
+# unchanged; only the location moved.
 
 on:
   push:

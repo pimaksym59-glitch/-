@@ -45,7 +45,7 @@
 services:
   console:
     build:
-      context: ./console
+      context: ./webplatform/console
       dockerfile: Dockerfile
     image: telegram-ai-console:latest
     restart: unless-stopped
