@@ -21,6 +21,13 @@ in any order once their own prerequisite (a live backend, a staging deploy, a Do
 the one session that closes ten FE-RV items at once, per the handoff's own observation that they "share one
 closing event."
 
+**Items 3, 4, 6 and 10 (FE-RV-7…16) have a second, more fundamental prerequisite this Runbook did not
+originally record: the `/api/v1` business/auth routes they need to call do not exist in the backend yet
+(only `health.router` is mounted in `app/api/v1/router.py`; `current_principal()` always returns `ANONYMOUS`;
+only `FakeUserStore` exists). A live backend alone — Docker, Caddy, credentials — cannot close these items
+until that separate backend gap is closed. See the FE-RV-7 Blocker Report (owner-reviewed) for the full
+evidence. No backend stage is authorized by this note.**
+
 ---
 
 ## 1. Docker Compose validation and the deferred Caddy route (FE-RV-3)

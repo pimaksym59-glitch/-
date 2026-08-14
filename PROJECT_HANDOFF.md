@@ -448,6 +448,11 @@ and neither track has ever had the infrastructure to perform it.
   and was NOT revisited at FS15 (production readiness was explicitly scoped to exclude new frontend
   functionality).
 - ALL frontend work is UNCOMMITTED (webplatform/ is untracked, no FS tags). Do not commit unprompted.
+- FE-RV-7…16 ARE BLOCKED, NOT MERELY OPEN: the backend's `/api/v1` business/auth routes do not exist in
+  code (only `health.router` is mounted in `app/api/v1/router.py`; `current_principal()` always returns
+  ANONYMOUS; only `FakeUserStore` exists). No amount of Docker/Caddy/credential preparation closes them
+  without a separate, unauthorized backend change — see the FE-RV-7 Blocker Report. Do not attempt staging
+  deployment for FE-RV-7…16 before that is resolved by the owner.
 - Open runtime items — the complete list, unchanged in scope by FS15's acceptance, each with its exact
   procedure now in webplatform/frontend/PRODUCTION_READINESS_RUNBOOK.md: FE-RV-3 (Docker), FE-RV-4
   (CI never executed), FE-RV-6 (Chromatic — needs CHROMATIC_PROJECT_TOKEN, 54 stories), FE-RV-7 (live
