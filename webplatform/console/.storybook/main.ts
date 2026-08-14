@@ -1,6 +1,7 @@
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react';
 import type { StorybookConfig } from '@storybook/react-vite';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -24,7 +25,21 @@ const config: StorybookConfig = {
   typescript: { reactDocgen: 'react-docgen' },
   viteFinal: (config) => ({
     ...config,
-    plugins: [...(config.plugins ?? []), tsconfigPaths()],
+    // FE-RV-6 diagnostic: @storybook/addon-docs (bundled in addon-essentials)
+    // leaves the shared React plugin in classic-JSX mode, which emits bare
+    // React.createElement(...) calls with no React import in first-party
+    // .tsx source (this project relies on the automatic runtime everywhere
+    // and never imports React explicitly) — "ReferenceError: React is not
+    // defined" at render time. Strip whatever react-babel/react-refresh
+    // plugin instance is already present and re-add our own, pinned to the
+    // automatic runtime, so it wins regardless of what addon-docs configured.
+    plugins: [
+      ...(config.plugins ?? [])
+        .flat()
+        .filter((plugin) => !['vite:react-babel', 'vite:react-refresh'].includes(plugin?.name)),
+      ...react({ jsxRuntime: 'automatic' }),
+      tsconfigPaths(),
+    ],
     resolve: {
       ...config.resolve,
       alias: {
