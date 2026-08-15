@@ -6,12 +6,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1.routes import health
+from app.api.v1.routes import auth, health
 
 _API_V1_PREFIX = "/api/v1"
 
 # Extension point: resource routers (channels/posts/...) are appended here in their service stages.
-_ROUTERS: tuple[APIRouter, ...] = (health.router,)
+_ROUTERS: tuple[APIRouter, ...] = (health.router, auth.router)
 
 
 def build_v1_router() -> APIRouter:

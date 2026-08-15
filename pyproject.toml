@@ -33,6 +33,7 @@ dependencies = [
     "pillow",
     "uuid6",              # UUIDv7 primary keys (§R4.3); works on Python 3.13+ (owner decision)
     "tzdata",             # cross-platform IANA tz database for zoneinfo (§R8.6 scheduler DST/timezone)
+    "bcrypt",             # real password hashing (Stage 21 Phase 0, §R10.4/R10.5)
 ]
 # UUIDv7 provider (§R4.3) is added at Stage 6 (ORM PKs), not here: stdlib uuid.uuid7() exists only
 # on Python 3.14, but the floor is 3.13; the 3.13-vs-3.14 / backport choice may warrant an ADR

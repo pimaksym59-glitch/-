@@ -20,3 +20,31 @@
 	# api service listens on :8000 (activated in Stage 10). Until then this yields 502.
 	reverse_proxy api:8000
 }
+
+# --- FE-RV-7 verification edge: HTTPS, one origin for Console + /api/v1 ---
+# Explicitly bound to `https://` so Caddy does NOT synthesise an HTTP-to-HTTPS
+# redirect site on :80 — the existing `:80` block above stays byte-identical in
+# behaviour as well as in text.
+https://console.test {
+	encode gzip
+
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+
+	# Caddy's built-in local CA. No public domain, no ACME, no external cert.
+	tls internal
+
+	# The frozen contract stays SAME-ORIGIN with the Console, which is what
+	# lets the browser keep and resend the backend session cookie.
+	handle /api/v1/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy console:3000
+	}
+}

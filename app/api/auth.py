@@ -1,17 +1,24 @@
-"""Authentication integration points (§R10.4/R10.5) — **extension only**, no OAuth/JWT/sessions and
-no RBAC enforcement yet (Stage 10 is infrastructure). The seam is here so the auth stage can plug in
-a real ``Authenticator`` and RBAC checks (service layer) **without changing route signatures**.
+"""Authentication integration points (§R10.4/R10.5).
 
-Nothing in Stage 10 relies on authentication: ``current_principal`` returns an anonymous principal
-by default; tests and later stages override it via ``dependency_overrides``.
+Stage 21 Phase 0: ``current_principal`` resolves the real session cookie via the real Redis-backed
+``SessionManager`` (``app.core.sessions.RedisSessionStore``) — no anonymous-only fallback for a
+request carrying a valid session. It still returns ANONYMOUS for a missing, unknown or expired
+cookie; tests override it via ``dependency_overrides`` exactly as before.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Annotated
 
+from fastapi import Depends
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
+
+from app.admin.sessions import SessionManager
+from app.api.deps import get_session_manager
+
+SESSION_COOKIE_NAME = "session"
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,16 +33,20 @@ class Principal:
 ANONYMOUS = Principal(id=None, role=None, is_authenticated=False)
 
 
-class Authenticator(Protocol):
-    """Pluggable authentication strategy (implemented by the auth stage)."""
+async def current_principal(
+    request: Request,
+    sessions: Annotated[SessionManager, Depends(get_session_manager)],
+) -> Principal:
+    """DI seam for the current caller (§R10.4): resolves the real session cookie.
 
-    async def authenticate(self, request: Request) -> Principal: ...
-
-
-async def current_principal(request: Request) -> Principal:
-    """DI seam for the current caller. Returns ANONYMOUS until real auth is wired (§R10.4).
-
-    RBAC (§R10.5) will be enforced in the service layer keyed off the resolved principal — never in
-    the UI and not in this stage.
+    RBAC (§R10.5) is enforced in the service layer keyed off the resolved principal — never in the
+    UI and not here.
     """
-    return ANONYMOUS
+
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token:
+        return ANONYMOUS
+    session = await run_in_threadpool(sessions.validate, token)
+    if session is None:
+        return ANONYMOUS
+    return Principal(id=session.user_id, role=session.role.value, is_authenticated=True)
