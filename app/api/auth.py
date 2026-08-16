@@ -17,6 +17,7 @@ from starlette.requests import Request
 
 from app.admin.sessions import SessionManager
 from app.api.deps import get_session_manager
+from app.core.errors import Unauthorized
 
 SESSION_COOKIE_NAME = "session"
 
@@ -31,6 +32,15 @@ class Principal:
 
 
 ANONYMOUS = Principal(id=None, role=None, is_authenticated=False)
+
+
+@dataclass(frozen=True, slots=True)
+class AuthenticatedPrincipal:
+    """A caller `require_principal` has already proven to hold a live session — ``id``/``role`` are
+    non-optional here, which is the whole point of the type."""
+
+    id: str
+    role: str
 
 
 async def current_principal(
@@ -50,3 +60,18 @@ async def current_principal(
     if session is None:
         return ANONYMOUS
     return Principal(id=session.user_id, role=session.role.value, is_authenticated=True)
+
+
+async def require_principal(
+    principal: Annotated[Principal, Depends(current_principal)],
+) -> AuthenticatedPrincipal:
+    """Dependency for every route outside ``/auth/*`` and ``/health/*``, which API_SPEC requires to
+    carry a session. A missing, unknown or expired session cookie -> 401.
+
+    Returns a narrowed principal so route handlers get non-optional ``id``/``role`` without
+    re-asserting what this dependency has already guaranteed.
+    """
+
+    if not principal.is_authenticated or principal.id is None or principal.role is None:
+        raise Unauthorized("no active session")
+    return AuthenticatedPrincipal(id=principal.id, role=principal.role)
